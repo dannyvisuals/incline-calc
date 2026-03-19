@@ -391,7 +391,7 @@ body {
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="calculator">Calculator</div>
-  <div class="tab" data-tab="orders">My Tasks</div>
+  <div class="tab" data-tab="orders">My Orders</div>
   <div class="tab" data-tab="debits">My Debits</div>
 </div>
 
@@ -423,10 +423,10 @@ body {
   </div>
 
   <div class="card">
-    <div class="section-title">Task Details</div>
+    <div class="section-title">Order Details</div>
     <div class="grid2" style="margin-bottom:14px;">
       <div class="form-group" style="margin:0;">
-        <label>Task Date <span style="color:var(--red)">*</span></label>
+        <label>Order Date <span style="color:var(--red)">*</span></label>
         <input type="date" id="calcOrderDate"/>
       </div>
       <div class="form-group" style="margin:0;">
@@ -489,7 +489,7 @@ body {
   <div style="display:flex;gap:10px;margin-bottom:40px;">
     <button class="btn btn-ghost" style="flex:1;" id="clearBtn">Clear</button>
     <button class="btn btn-gold" style="flex:2;" id="savePrintBtn">💾 Save & Print</button>
-    <button class="btn btn-gold" style="flex:2;" id="saveBtn">💾 Save Task</button>
+    <button class="btn btn-gold" style="flex:2;" id="saveBtn">💾 Save Order</button>
   </div>
 </div>
 
@@ -497,7 +497,7 @@ body {
 <div class="tab-content" id="tab-orders">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
-      <div class="section-title" style="margin:0;">My Tasks</div>
+      <div class="section-title" style="margin:0;">My Orders</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" id="orderSearch" placeholder="Search..." oninput="renderOrders()" style="background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;outline:none;width:140px;font-family:inherit;"/>
 
@@ -860,7 +860,7 @@ async function saveOrder(andPrint) {
     var res = await supa.from('orders').insert([order]).select();
     if (res.error) throw res.error;
     _myOrders.unshift(res.data[0]);
-    toast('✅ Task saved!');
+    toast('✅ Order saved!');
     clearForm();
     if (andPrint) { populateReceipt(res.data[0]); setTimeout(function() { window.print(); }, 200); }
   } catch(e) {
@@ -1255,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="modal-body">
       <div class="modal-grid">
-        <div class="modal-stat"><div class="modal-stat-label">Task Date</div><div class="modal-stat-val" id="om-date"></div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Order Date</div><div class="modal-stat-val" id="om-date"></div></div>
         <div class="modal-stat"><div class="modal-stat-label">Due Date</div><div class="modal-stat-val" id="om-due"></div></div>
         <div class="modal-stat"><div class="modal-stat-label">Task ID</div><div class="modal-stat-val" id="om-task" style="color:var(--gold);"></div></div>
         <div class="modal-stat"><div class="modal-stat-label">Status</div><div id="om-status"></div></div>
@@ -1266,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div style="display:flex;gap:10px;">
         <button class="btn btn-gold" style="flex:1;" onclick="printOrderFromModal()">&#128424; Print</button>
         <button class="btn btn-ghost" style="flex:1;" onclick="shareOrderFromModal()">&#128228; Share</button>
+        <button class="btn" style="flex:1;background:#25D366;color:#fff;border:none;border-radius:50px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;" onclick="whatsappOrderFromModal()">&#128362; WhatsApp</button>
       </div>
     </div>
   </div>
@@ -1427,6 +1428,77 @@ function shareOrderFromModal() {
   var filename = 'Receipt-'+(o.receipt_number||o.task_id||'order');
   closeOrderModal();
   shareAsPDF(filename);
+}
+
+async function whatsappOrderFromModal() {
+  if (!_currentOrder) return;
+  var o = _currentOrder;
+
+  // Populate the thermal receipt
+  var pc = o._printCount || 0;
+  document.getElementById('tr-receipt').textContent  = (o.receipt_number || '---') + (pc > 1 ? ' [REPRINT #' + pc + ']' : '');
+  document.getElementById('tr-date').textContent     = o.order_date || new Date().toLocaleDateString('en-GB');
+  document.getElementById('tr-staff').textContent    = _staff.name;
+  document.getElementById('tr-staffid').textContent  = _staff.staff_id;
+  document.getElementById('tr-task').textContent     = o.task_id || '---';
+  document.getElementById('tr-due').textContent      = o.due_date || '---';
+  document.getElementById('tr-items').innerHTML = (o.services || []).map(function(s) {
+    return '<div class="tr-item"><div class="tr-b">' + s.name + '</div><div class="tr-item-line"><span>' + s.qty + ' x ₦' + (s.unitPrice || 0).toLocaleString() + '</span><span>₦' + (s.price || 0).toLocaleString() + '</span></div></div>';
+  }).join('');
+  document.getElementById('tr-subtotal').textContent = '₦' + (o.subtotal || 0).toLocaleString();
+  document.getElementById('tr-total').textContent    = '₦' + Math.max(0, (o.subtotal || 0) - (o.deposit || 0)).toLocaleString();
+  document.getElementById('tr-bank').textContent     = _staff.bank_name || '---';
+  document.getElementById('tr-accnum').textContent   = _staff.account_number || '---';
+  document.getElementById('tr-accname').textContent  = _staff.account_name || '---';
+
+  var receipt = document.getElementById('thermalReceipt');
+  var prev = receipt.style.display;
+  receipt.style.display = 'block';
+  receipt.style.position = 'fixed';
+  receipt.style.left = '-9999px';
+  receipt.style.top = '0';
+  receipt.style.background = '#fff';
+  receipt.style.color = '#000';
+  receipt.style.width = '300px';
+  receipt.style.padding = '16px';
+
+  try {
+    var canvas = await html2canvas(receipt, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false
+    });
+
+    // Convert canvas to blob
+    canvas.toBlob(async function(blob) {
+      var filename = 'Receipt-' + (o.receipt_number || o.task_id || 'order') + '.png';
+      var file = new File([blob], filename, { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Native share sheet — user picks WhatsApp from the list
+        await navigator.share({ files: [file], title: filename });
+      } else {
+        // Fallback: download the image so user can share manually
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('Receipt saved! Open your gallery to share on WhatsApp.');
+      }
+    }, 'image/png');
+
+  } catch(e) {
+    console.error('WhatsApp share error:', e);
+    toast('Could not capture receipt. Try the Share button instead.');
+  } finally {
+    receipt.style.display = prev || 'none';
+    receipt.style.position = '';
+    receipt.style.left = '';
+    receipt.style.top = '';
+  }
 }
 
 function openLoanModal(id) {
