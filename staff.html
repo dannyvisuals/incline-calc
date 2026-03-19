@@ -391,7 +391,7 @@ body {
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="calculator">Calculator</div>
-  <div class="tab" data-tab="orders">My Orders</div>
+  <div class="tab" data-tab="orders">My Tasks</div>
   <div class="tab" data-tab="debits">My Debits</div>
 </div>
 
@@ -423,10 +423,10 @@ body {
   </div>
 
   <div class="card">
-    <div class="section-title">Order Details</div>
+    <div class="section-title">Task Details</div>
     <div class="grid2" style="margin-bottom:14px;">
       <div class="form-group" style="margin:0;">
-        <label>Order Date <span style="color:var(--red)">*</span></label>
+        <label>Task Date <span style="color:var(--red)">*</span></label>
         <input type="date" id="calcOrderDate"/>
       </div>
       <div class="form-group" style="margin:0;">
@@ -489,7 +489,7 @@ body {
   <div style="display:flex;gap:10px;margin-bottom:40px;">
     <button class="btn btn-ghost" style="flex:1;" id="clearBtn">Clear</button>
     <button class="btn btn-gold" style="flex:2;" id="savePrintBtn">💾 Save & Print</button>
-    <button class="btn btn-gold" style="flex:2;" id="saveBtn">💾 Save Order</button>
+    <button class="btn btn-gold" style="flex:2;" id="saveBtn">💾 Save Task</button>
   </div>
 </div>
 
@@ -497,7 +497,7 @@ body {
 <div class="tab-content" id="tab-orders">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
-      <div class="section-title" style="margin:0;">My Orders</div>
+      <div class="section-title" style="margin:0;">My Tasks</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" id="orderSearch" placeholder="Search..." oninput="renderOrders()" style="background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;outline:none;width:140px;font-family:inherit;"/>
 
@@ -860,7 +860,7 @@ async function saveOrder(andPrint) {
     var res = await supa.from('orders').insert([order]).select();
     if (res.error) throw res.error;
     _myOrders.unshift(res.data[0]);
-    toast('✅ Order saved!');
+    toast('✅ Task saved!');
     clearForm();
     if (andPrint) { populateReceipt(res.data[0]); setTimeout(function() { window.print(); }, 200); }
   } catch(e) {
@@ -1160,7 +1160,7 @@ async function reloadOrders() {
   if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
   await loadOrders();
   if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
-  toast('↻ Orders refreshed!');
+  toast('↻ Tasks refreshed!');
 }
 
 async function reloadAll() {
@@ -1228,10 +1228,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('saveBtn').addEventListener('click', function() { saveOrder(false); });
   document.getElementById('savePrintBtn').addEventListener('click', function() { saveOrder(true); });
 
-  // Order search
+  // Task search
   document.getElementById('orderSearch').addEventListener('input', renderOrders);
 
-  // Note: Order and loan modal buttons use inline onclick handlers
+  // Note: Task and loan modal buttons use inline onclick handlers
 
   // Close modals on backdrop click
   document.getElementById('orderModal').addEventListener('click', function(e) {
@@ -1255,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="modal-body">
       <div class="modal-grid">
-        <div class="modal-stat"><div class="modal-stat-label">Order Date</div><div class="modal-stat-val" id="om-date"></div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Task Date</div><div class="modal-stat-val" id="om-date"></div></div>
         <div class="modal-stat"><div class="modal-stat-label">Due Date</div><div class="modal-stat-val" id="om-due"></div></div>
         <div class="modal-stat"><div class="modal-stat-label">Task ID</div><div class="modal-stat-val" id="om-task" style="color:var(--gold);"></div></div>
         <div class="modal-stat"><div class="modal-stat-label">Status</div><div id="om-status"></div></div>
