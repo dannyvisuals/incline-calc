@@ -662,10 +662,10 @@ header {
     .status-row { gap:6px; }
     .status-btn { padding:5px 10px; font-size:10px; }
 
-    /* Orders table — make scrollable */
+    /* Task table — make scrollable */
     #ordersTable { overflow-x:auto; }
 
-  /* ── Orders Folder View ── */
+  /* ── Task Folder View ── */
   .orders-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -682,7 +682,7 @@ header {
     table { min-width:500px; }
     th, td { padding:8px 10px; font-size:12px; }
 
-    /* Orders filter */
+    /* Task filter */
     .orders-filter { flex-direction:column; }
     .orders-filter input, .orders-filter select { width:100%; }
 
@@ -1347,7 +1347,7 @@ header {
   <div class="tab active" data-tab="calculator" title="Calculator">
     <span class="icon material-icons">calculate</span>
   </div>
-  <div class="tab" data-tab="orders" title="Orders">
+  <div class="tab" data-tab="orders" title="Task">
     <span class="icon material-icons">inventory</span>
   </div>
   <div class="tab" data-tab="outstanding" title="Outstanding Balances">
@@ -1510,7 +1510,7 @@ header {
   </div>
 
   <div class="card">
-    <div class="section-title">Order Status</div>
+    <div class="section-title">Task Status</div>
     <div class="status-row" id="statusRow">
       <button class="status-btn active" data-status="Pending">⏳ Pending</button>
       <button class="status-btn" data-status="In Progress">🧵 In Progress</button>
@@ -1564,7 +1564,7 @@ header {
   <div id="order-list-screen">
   <div class="container">
     <div class="orders-card">
-      <div class="section-title">📁 Orders by Staff</div>
+      <div class="section-title">📁 Task</div>
       <div class="orders-filter">
         <input type="text" id="filterSearch" placeholder="Search staff name..."/>
         <select id="filterStatus">
@@ -1583,7 +1583,7 @@ header {
   <div class="container" style="max-width:820px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
       <button onclick="closeStaffOrdersScreen()" class="btn btn-ghost" style="padding:7px 18px;font-size:13px;">&#8592; Back</button>
-      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;">Staff Orders</div>
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;">Staff Task</div>
     </div>
     <!-- Staff hero card -->
     <div class="sr-hero" style="margin-bottom:18px;">
@@ -1597,7 +1597,7 @@ header {
         <div style="display:flex;gap:14px;flex-shrink:0;">
           <div style="text-align:center;">
             <div id="sos-count" style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--gold);">0</div>
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Orders</div>
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Task</div>
           </div>
           <div style="text-align:center;">
             <div id="sos-revenue" style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--gold);">&#8358;0</div>
@@ -1619,7 +1619,7 @@ header {
         <option>Ready</option><option>Delivered</option><option>Cancelled</option>
       </select>
     </div>
-    <!-- Orders table -->
+    <!-- Task table -->
     <div class="orders-card">
       <div id="sosOrdersTable"></div>
     </div>
@@ -1633,7 +1633,7 @@ header {
     <!-- Back nav -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
       <button onclick="closeOrderProfile()" class="btn btn-ghost" style="padding:7px 18px;font-size:13px;">&#8592; Back</button>
-      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;">Order Profile</div>
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;">Task Profile</div>
     </div>
 
     <!-- Hero card -->
@@ -1679,7 +1679,7 @@ header {
       <!-- Dates + task row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);">
         <div>
-          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:4px;">Order Date</div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:4px;">Task Date</div>
           <div id="op-order-date" style="font-size:12px;color:rgba(240,234,214,0.6);">&#8212;</div>
         </div>
         <div>
@@ -2078,7 +2078,7 @@ header {
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
       <div style="background:var(--surface);border:1px solid var(--surface3);border-radius:12px;padding:16px;text-align:center;">
         <div id="sr-stat-orders" style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:var(--gold);">0</div>
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;">Orders</div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;">Task</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--surface3);border-radius:12px;padding:16px;text-align:center;">
         <div id="sr-stat-revenue" style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--gold);">₦0</div>
@@ -2096,11 +2096,11 @@ header {
 
     <!-- Status breakdown -->
     <div style="background:var(--surface);border:1px solid var(--surface3);border-radius:12px;padding:20px;margin-bottom:18px;">
-      <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:14px;">Order Status Breakdown</div>
+      <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:14px;">Task Status Breakdown</div>
       <div id="sr-status-bars"></div>
     </div>
 
-    <!-- Outstanding Orders -->
+    <!-- Outstanding Task -->
     <div id="sr-outstanding-wrap" style="background:var(--surface);border:1px solid rgba(224,82,82,0.2);border-radius:12px;padding:20px;margin-bottom:18px;display:none;">
       <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#f87171;margin-bottom:14px;">⚠ Outstanding Balances</div>
       <div id="sr-outstanding-list"></div>
@@ -2115,7 +2115,7 @@ header {
     <!-- Full order history -->
     <div style="background:var(--surface);border:1px solid var(--surface3);border-radius:12px;overflow:hidden;margin-bottom:24px;">
       <div style="padding:16px 20px;border-bottom:1px solid var(--surface3);background:var(--surface2);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">Full Order History</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">Full Task History</div>
         <div id="sr-order-count" style="font-size:11px;color:var(--text-muted);margin-top:2px;"></div>
       </div>
       <div id="sr-order-list" style="max-height:400px;overflow-y:auto;"></div>
@@ -3054,7 +3054,7 @@ async function trackerDelete() {
   const order = orders.find(o => String(o.id) === String(id));
   if (!order) return;
   var _dod = await showConfirm({
-    title: 'Delete Order?',
+    title: 'Delete Task?',
     body: 'Delete <strong>' + (order.receiptNumber || '#'+id) + '</strong> for <strong>' + order.clientName + '</strong>.<br/>This cannot be undone.',
     okText: 'Delete', icon: '\uD83D\uDDD1'
   });
@@ -3065,7 +3065,7 @@ async function trackerDelete() {
   window._trkId = null;
   $('#trackerResult').html('');
   $('#trackerInput').val('').focus();
-  showToast('🗑 Order deleted');
+  showToast('🗑 Task deleted');
 }
 
 function reprintReceipt(orderId) {
@@ -3474,8 +3474,8 @@ function doSaveOrder(data) {
     notes: data.notes
   };
   sbSaveOrder(supaOrder)
-    .then(() => showToast('✅ Order saved for ' + data.clientName))
-    .catch(err => { console.error(err); showToast('✅ Order saved locally (sync pending)'); });
+    .then(() => showToast('✅ Task saved for ' + data.clientName))
+    .catch(err => { console.error(err); showToast('✅ Task saved locally (sync pending)'); });
 }
 
 // ── Find active loan profiles matching a client ──
@@ -3592,7 +3592,7 @@ function renderOrdersTable() {
   Object.keys(groups).forEach(k => { if (!groups[k].length) delete groups[k]; });
 
   if (!Object.keys(groups).length) {
-    $('#ordersTable').html('<div class="empty-state"><div class="icon">🧵</div><p>No orders found</p></div>');
+    $('#ordersTable').html('<div class="empty-state"><div class="icon">🧵</div><p>No task found</p></div>');
     return;
   }
 
@@ -3628,7 +3628,7 @@ function renderOrdersTable() {
         <div class="staff-card-stats">
           <div class="staff-card-stat">
             <div class="staff-card-stat-val">${staffOrders.length}</div>
-            <div class="staff-card-stat-lbl">Orders</div>
+            <div class="staff-card-stat-lbl">Task</div>
           </div>
           <div class="staff-card-stat">
             <div class="staff-card-stat-val" style="font-size:13px;">&#8358;${totalRevenue.toLocaleString()}</div>
@@ -3700,7 +3700,7 @@ function renderStaffOrdersList() {
   );
 
   if (!filtered.length) {
-    document.getElementById('sosOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">🧵</div><p>No orders found</p></div>';
+    document.getElementById('sosOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">🧵</div><p>No task found</p></div>';
     return;
   }
 
@@ -3731,7 +3731,7 @@ function renderStaffOrdersList() {
   document.getElementById('sosOrdersTable').innerHTML = html + '</tbody></table>';
 }
 
-// ── Order profile view state ──
+// ── Task profile view state ──
 let _opId = null;
 
 function viewOrder(id) {
@@ -3950,7 +3950,7 @@ function _downloadAndWhatsApp(blob, fileName, o) {
 
 async function deleteOrder(id) {
   var _do = await showConfirm({
-    title: 'Delete Order?',
+    title: 'Delete Task?',
     body: 'This order will be permanently removed from your records.',
     okText: 'Delete', icon: '\uD83D\uDDD1'
   });
@@ -3971,7 +3971,7 @@ async function deleteOrder(id) {
       await refreshOrdersFromSupabase();
       renderOrdersTable();
     } else {
-      showToast('🗑 Order deleted.');
+      showToast('🗑 Task deleted.');
     }
   } catch(e) {
     console.error('deleteOrder error:', e);
@@ -5969,7 +5969,7 @@ function _renderStaffCardsUI(timeframe, search) {
         <div class="staff-card-stats">
           <div class="staff-card-stat">
             <div class="staff-card-stat-val">${stats.orders.length}</div>
-            <div class="staff-card-stat-lbl">Orders</div>
+            <div class="staff-card-stat-lbl">Task</div>
           </div>
           <div class="staff-card-stat">
             <div class="staff-card-stat-val" style="font-size:13px;">₦${stats.totalRevenue.toLocaleString()}</div>
@@ -6114,7 +6114,7 @@ function renderStaffReport(name) {
   }
   $('#sr-top-services').html(svcsHtml);
 
-  // Order history
+  // Task history
   $('#sr-order-count').text(stats.orders.length + ' order' + (stats.orders.length!==1?'s':'') + ' in ' + tlabel.toLowerCase());
   const bmap = {'Pending':'badge-pending','In Progress':'badge-pending','Ready':'badge-ready','Delivered':'badge-delivered','Cancelled':'badge-cancelled'};
   let listHtml = '';
@@ -6240,7 +6240,7 @@ async function clearForm() {
 function exportCSV() {
   const orders = getOrders();
   if (!orders.length) { showToast('No orders to export.'); return; }
-  let csv = 'Client,Phone,Order Date,Due Date,Status,Services,Subtotal,Discount,Deposit,Balance\n';
+  let csv = 'Client,Phone,Task Date,Due Date,Status,Services,Subtotal,Discount,Deposit,Balance\n';
   orders.forEach(o => {
     const svcs = o.services.map(s => `${s.name}x${s.qty}`).join('; ');
     csv += `"${o.clientName}","${o.clientPhone||''}","${o.orderDate||''}","${o.dueDate||''}","${o.status}","${svcs}",${o.subtotal},${o.discount},${o.deposit},${o.balance}\n`;
