@@ -4224,10 +4224,25 @@ async function doUpdateOrder(orderId, data) {
     showToast('✅ Task updated locally (sync pending)');
   }
 
-  // Clean up edit mode
+  // Clean up edit mode — restore original SVG button
   _editingOrderId = null;
   $('#edit-mode-banner').remove();
-  $('#saveOrderBtn').text('💾 Save Task').css({ 'background': '', 'color': '' });
+  $('#saveOrderBtn')
+    .html(`    <svg xmlns="http://www.w3.org/2000/svg" 
+         class="icon" 
+         viewBox="0 0 24 24" 
+         width="20" height="20" 
+         fill="none" 
+         stroke="currentColor" 
+         stroke-width="2" 
+         style="margin-right:6px;">
+      <path d="M4 3h12a2 2 0 012 2v14a2 2 0 01-2 2H4z"/>
+      <path d="M4 3v18"/>
+      <path d="M14.5 9.5l5 5-2 2-5-5z"/>
+      <path d="M13 11l1.5-1.5"/>
+    </svg>`)
+    .removeClass('btn-edit-mode')
+    .css({ 'background': '', 'color': '', 'padding': '', 'border': '' });
   clearForm();
   renderOrdersTable();
 
@@ -4626,74 +4641,114 @@ function opDelete() {
 }
 
 // ── Edit & Resend to Calculator ──
-let _editingOrderId = null; // tracks if we're editing an existing order
+let _editingOrderId = null;
 
 function opEditResend() {
   const o = getOrders().find(o => String(o.id) === String(_opId));
   if (!o) return;
-
   _editingOrderId = o.id;
 
-  // Switch to calculator tab
+  // Switch to calculator tab first
   switchTab('calculator');
+  window.scrollTo({ top: 0, behavior: 'instant' });
 
-  // Fill in all fields
+  // ── Fill every field ──
   $('#clientName').val(o.clientName || '');
   $('#clientPhone').val(o.clientPhone || '');
+  $('#staffId').val(o.staffId || 'IW-ADM-001');
   $('#taskId').val(o.taskId || '');
   $('#orderDate').val(o.orderDate || '');
   $('#dueDate').val(o.dueDate || '');
   $('#orderNotes').val(o.notes || '');
-  $('#discountAmt').val(o.discount || '');
-  $('#depositPaid').val(o.deposit || '');
+  $('#discountAmt').val(o.discount > 0 ? o.discount : '');
+  $('#depositPaid').val(o.deposit > 0 ? o.deposit : '');
+  $('#staffBankName').val(o.bankName || '');
+  $('#staffAccountNumber').val(o.accountNumber || '');
+  $('#staffAccountName').val(o.accountName || '');
 
-  // Set status
+  // Staff ID counter display
+  if (typeof updateTaskIdCounter === 'function') updateTaskIdCounter();
+
+  // ── Status ──
   orderStatus = o.status || 'Pending';
   $('.status-btn').removeClass('active');
   $(`.status-btn[data-status="${orderStatus}"]`).addClass('active');
-
-  // Rebuild services
-  $('#servicesContainer').empty();
-  (o.services || []).forEach(function(sv) {
-    addServiceRow(sv.name, sv.qty);
-  });
-  if (!o.services || !o.services.length) addServiceRow();
-
-  calcTotals();
-
-  // Change save button to "Update Task"
-  $('#saveOrderBtn').text('💾 Update Task').css({
-    'background': 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-    'color': '#fff'
-  });
-
-  // Show an edit banner
-  if (!$('#edit-mode-banner').length) {
-    $('#tab-calculator').prepend(`
-      <div id="edit-mode-banner" style="
-        background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);
-        border-radius:12px;padding:12px 18px;margin-bottom:16px;
-        display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:16px;">✏️</span>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#60a5fa;">Editing Task</div>
-            <div style="font-size:11px;color:var(--text-muted);">Receipt: ${o.receiptNumber || '#'+o.id} · Changes will update the original record</div>
-          </div>
-        </div>
-        <button onclick="cancelEditOrder()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px;">✕ Cancel Edit</button>
-      </div>`);
+  if (!$(`.status-btn[data-status="${orderStatus}"]`).length) {
+    // fallback — match by text
+    $('.status-btn').each(function() {
+      if ($(this).text().trim() === orderStatus) $(this).addClass('active');
+    });
   }
 
-  showToast('✏️ Task loaded for editing');
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  // ── Services — rebuild rows with pre-selected values ──
+  $('#servicesContainer').empty();
+  const svcs = o.services || [];
+  if (svcs.length) {
+    svcs.forEach(function(sv) {
+      const row = $(`
+        <div class="svc-row">
+          <select class="svc-select">${buildOptions(sv.name)}</select>
+          <input type="number" class="svc-qty" value="${sv.qty || 1}" min="1" max="9999"/>
+          <div class="price-display">₦0</div>
+          <button class="remove-btn" title="Remove">✕</button>
+        </div>
+      `);
+      row.find('.svc-select, .svc-qty').on('change input', () => { triggerRowCalc(row); calcTotals(); });
+      row.find('.remove-btn').on('click', () => { row.remove(); calcTotals(); });
+      $('#servicesContainer').append(row);
+      triggerRowCalc(row);
+    });
+  } else {
+    addServiceRow();
+  }
+  calcTotals();
+
+  // ── Edit mode banner ──
+  $('#edit-mode-banner').remove();
+  $('#tab-calculator').prepend(`
+    <div id="edit-mode-banner" style="
+      background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.25);
+      border-radius:12px;padding:12px 18px;margin-bottom:16px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">✏️</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#60a5fa;">Editing Existing Task</div>
+          <div style="font-size:11px;color:var(--text-muted);">Receipt: <strong style="color:rgba(240,234,214,0.6);">${o.receiptNumber || '#'+o.id}</strong> · Saving will update the original record</div>
+        </div>
+      </div>
+      <button onclick="cancelEditOrder()" style="background:rgba(224,82,82,0.08);border:1px solid rgba(224,82,82,0.2);color:var(--red);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;">✕ Cancel Edit</button>
+    </div>`);
+
+  // ── Change save button to edit mode ──
+  $('#saveOrderBtn')
+    .html('<span style="font-size:13px;font-weight:700;letter-spacing:0.3px;">✏️ Update Task</span>')
+    .addClass('btn-edit-mode')
+    .css({ 'background': 'linear-gradient(135deg,#3b82f6,#60a5fa)', 'color': '#fff', 'padding':'8px 14px', 'border':'none' });
+
+  showToast('✏️ Task loaded — make your changes and click Update Task');
 }
 
 function cancelEditOrder() {
   _editingOrderId = null;
   $('#edit-mode-banner').remove();
-  $('#saveOrderBtn').text('💾 Save Task').css({ 'background': '', 'color': '' });
-  clearForm();
+  // Restore save button to original SVG icon state
+  $('#saveOrderBtn')
+    .html(`    <svg xmlns="http://www.w3.org/2000/svg" 
+         class="icon" 
+         viewBox="0 0 24 24" 
+         width="20" height="20" 
+         fill="none" 
+         stroke="currentColor" 
+         stroke-width="2" 
+         style="margin-right:6px;">
+      <path d="M4 3h12a2 2 0 012 2v14a2 2 0 01-2 2H4z"/>
+      <path d="M4 3v18"/>
+      <path d="M14.5 9.5l5 5-2 2-5-5z"/>
+      <path d="M13 11l1.5-1.5"/>
+    </svg>`)
+    .removeClass('btn-edit-mode')
+    .css({ 'background': '', 'color': '', 'padding': '', 'border': '' });
   showToast('Edit cancelled');
 }
 
@@ -7118,7 +7173,22 @@ async function clearForm() {
   if (_editingOrderId) {
     _editingOrderId = null;
     $('#edit-mode-banner').remove();
-    $('#saveOrderBtn').text('💾 Save Task').css({ 'background': '', 'color': '' });
+    $('#saveOrderBtn')
+      .html(`    <svg xmlns="http://www.w3.org/2000/svg" 
+           class="icon" 
+           viewBox="0 0 24 24" 
+           width="20" height="20" 
+           fill="none" 
+           stroke="currentColor" 
+           stroke-width="2" 
+           style="margin-right:6px;">
+        <path d="M4 3h12a2 2 0 012 2v14a2 2 0 01-2 2H4z"/>
+        <path d="M4 3v18"/>
+        <path d="M14.5 9.5l5 5-2 2-5-5z"/>
+        <path d="M13 11l1.5-1.5"/>
+      </svg>`)
+      .removeClass('btn-edit-mode')
+      .css({ 'background': '', 'color': '', 'padding': '', 'border': '' });
   }
 }
 
