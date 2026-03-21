@@ -1820,6 +1820,7 @@ header {
 
     <!-- Action buttons -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="opEditResend()" class="btn" style="flex:1;min-width:140px;padding:13px;font-size:14px;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);color:#60a5fa;">✏️ Edit & Resend</button>
       <button onclick="opReprint()" class="btn btn-gold" style="flex:1;min-width:140px;padding:13px;font-size:14px;">&#128424; Reprint Receipt</button>
       <button onclick="opRecordPayment()" class="btn" style="flex:1;min-width:140px;padding:13px;font-size:14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green);">&#128176; Record Payment</button>
       <button onclick="opShareWhatsApp()" class="btn" style="padding:13px 20px;font-size:14px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.35);color:#25D366;" onmouseenter="this.style.background='rgba(37,211,102,0.2)'" onmouseleave="this.style.background='rgba(37,211,102,0.1)'">
@@ -4135,6 +4136,12 @@ async function saveOrder() {
     showToast('⚠️ Account number must be exactly 10 digits'); $('#staffAccountNumber').focus(); return;
   }
 
+  // ── EDIT MODE: update existing order ──
+  if (_editingOrderId) {
+    await doUpdateOrder(_editingOrderId, data);
+    return;
+  }
+
   // ── LOAN SYNC: if deduction entered, sync loan AND save order ──
   if (data.discount > 0) {
     const hasActiveLoan = findActiveLoanMatches(data.clientName, data.clientPhone).length > 0;
@@ -4158,6 +4165,75 @@ async function saveOrder() {
 
   // Always save order (with or without deduction)
   doSaveOrder(data);
+}
+
+// ── Update an existing order ──
+async function doUpdateOrder(orderId, data) {
+  const orders = getOrders();
+  const idx = orders.findIndex(o => String(o.id) === String(orderId));
+  if (idx < 0) { showToast('⚠️ Could not find original task'); return; }
+
+  // Merge updated fields, keep original id/receipt/staffId
+  const original = orders[idx];
+  const updated = Object.assign({}, original, {
+    clientName:    data.clientName,
+    clientPhone:   data.clientPhone,
+    taskId:        data.taskId,
+    orderDate:     data.orderDate,
+    dueDate:       data.dueDate,
+    status:        data.status,
+    services:      data.services,
+    subtotal:      data.subtotal,
+    discount:      data.discount,
+    deposit:       data.deposit,
+    balance:       data.balance,
+    notes:         data.notes,
+    bankName:      data.bankName,
+    accountNumber: data.accountNumber,
+    accountName:   data.accountName,
+  });
+
+  orders[idx] = updated;
+  localStorage.setItem('incline_orders', JSON.stringify(orders));
+
+  // Sync to Supabase
+  const supaUpdate = {
+    client_name:    updated.clientName,
+    client_phone:   updated.clientPhone,
+    task_id:        updated.taskId,
+    order_date:     updated.orderDate,
+    due_date:       updated.dueDate,
+    status:         updated.status,
+    services:       updated.services,
+    subtotal:       updated.subtotal,
+    discount:       updated.discount,
+    deposit:        updated.deposit,
+    balance:        updated.balance,
+    notes:          updated.notes,
+    bank_name:      updated.bankName,
+    account_number: updated.accountNumber,
+    account_name:   updated.accountName,
+  };
+
+  try {
+    const { error } = await supa.from('orders').update(supaUpdate).eq('id', String(orderId));
+    if (error) throw error;
+    showToast('✅ Task updated successfully!');
+  } catch(e) {
+    console.error('Update sync failed:', e);
+    showToast('✅ Task updated locally (sync pending)');
+  }
+
+  // Clean up edit mode
+  _editingOrderId = null;
+  $('#edit-mode-banner').remove();
+  $('#saveOrderBtn').text('💾 Save Task').css({ 'background': '', 'color': '' });
+  clearForm();
+  renderOrdersTable();
+
+  // Switch back to task list
+  switchTab('orders');
+  showToast('✅ Task updated!');
 }
 
 // ── Saves order to storage and refreshes table ──
@@ -4548,6 +4624,79 @@ function opRecordPayment() {
 function opDelete() {
   if (_opId) deleteOrder(_opId);
 }
+
+// ── Edit & Resend to Calculator ──
+let _editingOrderId = null; // tracks if we're editing an existing order
+
+function opEditResend() {
+  const o = getOrders().find(o => String(o.id) === String(_opId));
+  if (!o) return;
+
+  _editingOrderId = o.id;
+
+  // Switch to calculator tab
+  switchTab('calculator');
+
+  // Fill in all fields
+  $('#clientName').val(o.clientName || '');
+  $('#clientPhone').val(o.clientPhone || '');
+  $('#taskId').val(o.taskId || '');
+  $('#orderDate').val(o.orderDate || '');
+  $('#dueDate').val(o.dueDate || '');
+  $('#orderNotes').val(o.notes || '');
+  $('#discountAmt').val(o.discount || '');
+  $('#depositPaid').val(o.deposit || '');
+
+  // Set status
+  orderStatus = o.status || 'Pending';
+  $('.status-btn').removeClass('active');
+  $(`.status-btn[data-status="${orderStatus}"]`).addClass('active');
+
+  // Rebuild services
+  $('#servicesContainer').empty();
+  (o.services || []).forEach(function(sv) {
+    addServiceRow(sv.name, sv.qty);
+  });
+  if (!o.services || !o.services.length) addServiceRow();
+
+  calcTotals();
+
+  // Change save button to "Update Task"
+  $('#saveOrderBtn').text('💾 Update Task').css({
+    'background': 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+    'color': '#fff'
+  });
+
+  // Show an edit banner
+  if (!$('#edit-mode-banner').length) {
+    $('#tab-calculator').prepend(`
+      <div id="edit-mode-banner" style="
+        background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);
+        border-radius:12px;padding:12px 18px;margin-bottom:16px;
+        display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:16px;">✏️</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#60a5fa;">Editing Task</div>
+            <div style="font-size:11px;color:var(--text-muted);">Receipt: ${o.receiptNumber || '#'+o.id} · Changes will update the original record</div>
+          </div>
+        </div>
+        <button onclick="cancelEditOrder()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px;">✕ Cancel Edit</button>
+      </div>`);
+  }
+
+  showToast('✏️ Task loaded for editing');
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function cancelEditOrder() {
+  _editingOrderId = null;
+  $('#edit-mode-banner').remove();
+  $('#saveOrderBtn').text('💾 Save Task').css({ 'background': '', 'color': '' });
+  clearForm();
+  showToast('Edit cancelled');
+}
+
 
 function opShareWhatsApp() {
   const o = getOrders().find(o => String(o.id) === String(_opId));
@@ -6965,6 +7114,12 @@ async function clearForm() {
   addServiceRow(); calcTotals();
   calcClearAllFlags();
   updateTaskIdCounter();
+  // Reset edit mode if active
+  if (_editingOrderId) {
+    _editingOrderId = null;
+    $('#edit-mode-banner').remove();
+    $('#saveOrderBtn').text('💾 Save Task').css({ 'background': '', 'color': '' });
+  }
 }
 
 function exportCSV() {
