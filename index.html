@@ -1648,7 +1648,7 @@ header {
         <div class="sum-line"><span class="sum-label">Sub-total</span><span id="sumSubtotal">₦0</span></div>
         <div class="sum-line"><span class="sum-label">Loan Deduction</span><span id="sumDeduction" style="color:var(--red)">−₦0</span></div>
         <div class="sum-line"><span class="sum-label">Advance Paid</span><span id="sumAdvancepaid" style="color:var(--green)">₦0</span></div>
-        <div class="sum-line total"><span>Balance Due</span><span id="sumTotal">₦0</span></div>
+        <div class="sum-line total"><span>Balance</span><span id="sumTotal">₦0</span></div>
       </div>
       <button class="btn btn-gold" style="width:100%;padding:13px;font-size:15px;margin-bottom:10px" onclick="printThermalReceipt()">🖨 Print Receipt</button>
       <button class="btn btn-ghost" style="width:100%;padding:13px;font-size:15px" id="clearBtn">🗑 Clear Form</button>
@@ -1756,7 +1756,7 @@ header {
 
       <!-- Balance display -->
       <div style="margin-bottom:22px;">
-        <div style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;color:rgba(16,185,129,0.65);margin-bottom:8px;">Balance Due</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;color:rgba(16,185,129,0.65);margin-bottom:8px;">Balance</div>
         <div id="op-balance" style="font-size:54px;font-weight:700;color:#F0EAD6;font-family:'Cormorant Garamond',serif;line-height:1;letter-spacing:-1px;">&#8358;0</div>
       </div>
 
@@ -3519,7 +3519,7 @@ function trackLoan() {
       '<div style="font-size:16px;font-weight:700;color:var(--green);font-family:\'Cormorant Garamond\',serif;">₦' + totalPaid.toLocaleString() + '</div>' +
       '</div>' +
       '<div style="background:var(--surface);padding:12px 16px;">' +
-      '<div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:3px;">Balance Due</div>' +
+      '<div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:3px;">Balance</div>' +
       '<div style="font-size:16px;font-weight:700;font-family:\'Cormorant Garamond\',serif;color:' + (isPaid ? 'var(--green)' : 'var(--red)') + ';">₦' + (debt.balance||0).toLocaleString() + '</div>' +
       '</div>' +
       '</div>' +
@@ -3689,7 +3689,7 @@ function trackReceipt() {
           ${order.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span style="color:var(--text-muted);">Loan Deduction</span><span style="color:var(--red);">−₦${order.discount.toLocaleString()}</span></div>` : ''}
           ${order.deposit > 0 ? `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span style="color:var(--text-muted);">Advance Paid</span><span style="color:var(--green);">₦${order.deposit.toLocaleString()}</span></div>` : ''}
           <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;padding-top:10px;margin-top:6px;border-top:1px solid var(--surface3);font-family:'Cormorant Garamond',serif;">
-            <span style="color:var(--text-muted);">Balance Due</span>
+            <span style="color:var(--text-muted);">Balance</span>
             <span style="color:var(--gold);">₦${order.balance.toLocaleString()}</span>
           </div>
         </div>
@@ -4610,7 +4610,7 @@ function renderOrderProfile(id) {
   $('#op-totals').html(`
     <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--surface3);"><span style="color:var(--text-muted);">Subtotal</span><span>₦${o.subtotal.toLocaleString()}</span></div>
     ${deductRow}${depositRow}
-    <div style="display:flex;justify-content:space-between;padding:10px 0 2px;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;"><span style="color:var(--text-muted);">Balance Due</span><span style="color:var(--gold);">₦${o.balance.toLocaleString()}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0 2px;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;"><span style="color:var(--text-muted);">Balance</span><span style="color:var(--gold);">₦${o.balance.toLocaleString()}</span></div>
   `);
 
   // Notes card
