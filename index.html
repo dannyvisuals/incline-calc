@@ -215,6 +215,8 @@ body {
     radial-gradient(ellipse 40% 35% at 50% 50%, rgba(10,185,100,0.05)  0%, transparent 70%),
     linear-gradient(160deg, #0a0f0a 0%, #0b1210 40%, #090c12 70%, #0c0a10 100%);
   background-attachment: fixed;
+  /* Prevent FOUC - background renders instantly */
+  will-change: background;
 }
   /* ── LIVE SYNC INDICATOR ── */
   @keyframes livePulse {
@@ -1332,7 +1334,7 @@ header {
 }
 </style>
 </head>
-<body>
+<body style="background-color:#080d09;">
 <div style="position:fixed;inset:0;z-index:0;pointer-events:none;display:flex;align-items:center;justify-content:center;">
   <img src="logo.PNG" alt="" style="width:340px;height:340px;object-fit:cover;opacity:0.07;filter:grayscale(30%) brightness(1.4);border-radius:50%;"/>
 </div>
@@ -4672,9 +4674,12 @@ async function deleteOrder(id) {
 
   // 1. Remove locally first so the UI feels instant
   localStorage.setItem('incline_orders', JSON.stringify(getOrders().filter(o => o.id !== id)));
-  closeOrderProfile();
+  // Stay on the task list — don't jump to a different tab
+  $('#order-profile-screen').hide();
+  $('#order-list-screen').show();
+  _opId = null;
   renderOrdersTable();
-  showToast('Deleting order…');
+  showToast('Deleting task…');
 
   // 2. Delete from Supabase so it does not come back on next refresh
   try {
@@ -5591,8 +5596,13 @@ async function deleteCurrentDebt() {
   });
   if (!_dcd) return;
   localStorage.setItem('incline_manual_debts', JSON.stringify(getManualDebts().filter(d => d.id !== _pvId)));
+  sbDeleteLoan(_pvId).catch(e => console.error('Loan delete sync failed:', e));
   _pvId = null;
-  closeDebtProfile();
+  // Stay on outstanding tab — just go back to the list
+  $('#os-profile').hide();
+  $('#os-main').show();
+  renderOutstandingTable();
+  updateAlumniBadge();
   showToast('🗑 Profile deleted');
 }
 
@@ -5772,10 +5782,13 @@ async function deleteDebt(id) {
     okText: 'Remove', icon: '\uD83D\uDDD1'
   });
   if (!_dd) return;
+  // Stay exactly where the user is — no scroll, no tab switch
+  var scrollPos = window.scrollY;
   localStorage.setItem('incline_manual_debts', JSON.stringify(getManualDebts().filter(d => d.id !== id)));
   sbDeleteLoan(id).catch(e => console.error('Loan delete sync failed:', e));
   renderOutstandingTable();
   updateAlumniBadge();
+  window.scrollTo({ top: scrollPos, behavior: 'instant' });
   showToast('🗑 Removed');
 }
 
@@ -7464,6 +7477,12 @@ async function saveSalaryEntry() {
     document.getElementById('sp-date').value = now.toISOString().slice(0, 10);
     document.getElementById('sp-time').value = now.toTimeString().slice(0, 5);
 
+    // Update cache immediately so grid reflects change without extra fetch
+    const updatedEntries = await sbGetSalaries(_salaryStaffId);
+    _salaryEntries = updatedEntries;
+    // Rebuild all-salaries cache for the grid stats
+    const allFresh = await sbGetSalaries();
+    _allSalariesCache = allFresh;
     await refreshSalaryProfile();
   } catch(e) {
     showToast('❌ Failed to save: ' + e.message);
@@ -7517,9 +7536,11 @@ async function deleteSalaryEntry(id) {
   });
   if (!ok) return;
   try {
+    var scrollPos = window.scrollY;
     await sbDeleteSalary(id);
     showToast('🗑 Payment deleted');
     await refreshSalaryProfile();
+    window.scrollTo({ top: scrollPos, behavior: 'instant' });
   } catch(e) {
     showToast('❌ Failed to delete');
   }
@@ -7658,16 +7679,25 @@ function closeSalaryProfile() {
     </div>
   </div>
 
+  <!-- Auto-expand notice -->
+  <div id="anx-expand-notice" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:rgba(251,191,36,0.85);">
+    ⚡ No data found for that period — showing all available data instead.
+  </div>
+
   <!-- Main bar chart -->
   <div class="anx-card">
     <div class="anx-card-title">Quantity Produced Per Service</div>
     <div id="anx-bar-wrap" style="position:relative;min-height:300px;">
+      <div id="anx-empty-state" style="display:none;text-align:center;padding:50px 20px;color:var(--text-muted);">
+        <div style="font-size:36px;margin-bottom:12px;">📊</div>
+        <div style="font-size:13px;">No production data for this filter.</div>
+      </div>
       <canvas id="anx-bar-chart"></canvas>
     </div>
   </div>
 
   <!-- Donut: sewing vs cutting -->
-  <div class="anx-card" style="max-width:360px;margin-left:auto;margin-right:auto;">
+  <div id="anx-donut-wrap" class="anx-card" style="max-width:360px;margin-left:auto;margin-right:auto;">
     <div class="anx-card-title">Sewing vs Cutting Split</div>
     <div style="position:relative;height:220px;">
       <canvas id="anx-donut-chart"></canvas>
@@ -7700,18 +7730,37 @@ function renderAnalysis() {
     });
   }
 
-  // Cutoff
-  var now = new Date(), cutoff = null;
-  if (tf === 'week')   cutoff = new Date(now - 7  * 864e5);
-  if (tf === 'month')  cutoff = new Date(now - 30 * 864e5);
-  if (tf === '3month') cutoff = new Date(now - 90 * 864e5);
-  if (tf === 'year')   cutoff = new Date(now.getFullYear(), 0, 1);
-
   var profiles  = getStaffProfiles();
-  var orders = getOrders().filter(function(o) {
+  var allOrders = getOrders();
+
+  // Smart timeframe: if selected period has no data, auto-expand to find data
+  var now = new Date();
+  function getCutoff(period) {
+    if (period === 'week')   return new Date(now - 7  * 864e5);
+    if (period === 'month')  return new Date(now - 30 * 864e5);
+    if (period === '3month') return new Date(now - 90 * 864e5);
+    if (period === 'year')   return new Date(now.getFullYear(), 0, 1);
+    return null;
+  }
+
+  var cutoff = getCutoff(tf);
+  var filtered = allOrders.filter(function(o) {
     if (!cutoff) return true;
     return new Date(o.orderDate || o.date) >= cutoff;
   });
+
+  // If nothing found and a specific period was chosen AND no staff filter, auto-expand
+  var autoExpanded = false;
+  if (!filtered.length && tf !== 'all' && sf === 'all') {
+    filtered = allOrders.slice();
+    autoExpanded = true;
+  }
+
+  // Show/hide auto-expand notice
+  var notice = document.getElementById('anx-expand-notice');
+  if (notice) notice.style.display = autoExpanded ? 'block' : 'none';
+
+  var orders = filtered;
 
   if (sf !== 'all') {
     var profile = profiles.find(function(p) { return p.name === sf; });
@@ -7746,22 +7795,37 @@ function renderAnalysis() {
   document.getElementById('anx-total-cut').textContent  = totalCut;
   document.getElementById('anx-total-svc').textContent  = entries.length;
 
+  // Always keep canvas intact — show/hide empty state overlay instead
+  var emptyEl  = document.getElementById('anx-empty-state');
+  var barWrap  = document.getElementById('anx-bar-wrap');
+  var donutWrap = document.getElementById('anx-donut-wrap');
+
   if (!entries.length) {
-    var el = document.getElementById('anx-bar-wrap');
-    if (el) el.innerHTML = '<div class="anx-empty"><div class="anx-empty-icon">📊</div>No production data for this period.</div>';
+    if (emptyEl)  emptyEl.style.display  = 'block';
+    if (barWrap)  { var bc = document.getElementById('anx-bar-chart'); if (bc) bc.style.display = 'none'; }
+    if (donutWrap) donutWrap.style.display = 'none';
     if (_anxChart) { _anxChart.destroy(); _anxChart = null; }
     if (_anxDonut) { _anxDonut.destroy(); _anxDonut = null; }
     return;
   }
+  // Has data — hide empty state, show charts
+  if (emptyEl)  emptyEl.style.display  = 'none';
+  if (donutWrap) donutWrap.style.display = '';
+  var bcEl = document.getElementById('anx-bar-chart');
+  if (bcEl) bcEl.style.display = '';
 
   // ── Main horizontal bar chart (top 15) ──
   var top = entries.slice(0, 15);
-  var labels   = top.map(function(e) { var l = e[0]; return l.length > 22 ? l.slice(0,20)+'…' : l; });
+  var labels   = top.map(function(e) { var l = e[0]; return l.length > 24 ? l.slice(0,22)+'…' : l; });
   var values   = top.map(function(e) { return e[1].qty; });
   var bgColors = top.map(function(e) { return e[1].isCut ? 'rgba(251,191,36,0.75)' : 'rgba(16,185,129,0.75)'; });
   var borders  = top.map(function(e) { return e[1].isCut ? '#FBBF24' : '#10B981'; });
 
-  var chartH = Math.max(300, top.length * 34);
+  // Bar thickness scales with number of items — fewer items = fatter bars
+  var barThick = top.length <= 5 ? 32 : top.length <= 8 ? 26 : top.length <= 12 ? 20 : 14;
+
+  // Portrait chart — fixed height
+  var chartH = 300;
   var barCanvas = document.getElementById('anx-bar-chart');
   if (barCanvas) barCanvas.height = chartH;
 
@@ -7774,13 +7838,13 @@ function renderAnalysis() {
       datasets: [{
         label: 'Quantity', data: values,
         backgroundColor: bgColors, borderColor: borders,
-        borderWidth: 1.5, borderRadius: 6, borderSkipped: false
+        borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
+        barThickness: barThick
       }]
     },
     options: {
-      indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
-      animation: { duration: 600, easing: 'easeOutQuart' },
+      animation: { duration: 500, easing: 'easeOutQuart' },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -7789,18 +7853,24 @@ function renderAnalysis() {
           titleColor: '#F0EAD6', bodyColor: '#aaa', padding: 12,
           callbacks: {
             title: function(items) { return top[items[0].dataIndex][0]; },
-            label: function(item) { return ' ' + item.raw + ' pieces'; }
+            label: function(item) { return ' ' + item.raw + ' piece' + (item.raw !== 1 ? 's' : ''); }
           }
         }
       },
       scales: {
         x: {
-          beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#666', font: { size: 11 }, stepSize: 1 }
+          grid: { display: false },
+          ticks: {
+            color: '#bbb', font: { size: 11 }, maxRotation: 35, minRotation: 25,
+            callback: function(val, i) {
+              var l = labels[i] || '';
+              return l.length > 14 ? l.slice(0,13)+'…' : l;
+            }
+          }
         },
         y: {
-          grid: { display: false },
-          ticks: { color: '#ccc', font: { size: 12 } }
+          beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#666', font: { size: 11 }, stepSize: 1 }
         }
       }
     }
