@@ -480,7 +480,7 @@ body {
           oninput="calcTotals()"/></span>
       </div>
       <div class="totals-row totals-final">
-        <span style="font-size:14px;color:var(--text-muted);">Balance Due</span>
+        <span style="font-size:14px;color:var(--text-muted);">Balance</span>
         <span id="sumBalance" style="color:var(--gold);">₦0</span>
       </div>
     </div>
@@ -1452,7 +1452,7 @@ function openOrderModal(id) {
   }
   totalsHtml +=
     '<div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:6px;border-top:1px solid var(--surface3);font-size:18px;font-weight:700;">' +
-    '<span style="color:var(--text-muted);">Balance Due</span>' +
+    '<span style="color:var(--text-muted);">Balance</span>' +
     '<span style="color:' + ((o.balance||0) <= 0 ? 'var(--green)' : 'var(--gold)') + ';">₦' + (o.balance||0).toLocaleString() + '</span></div>';
   document.getElementById('om-totals-box').innerHTML = totalsHtml;
 
