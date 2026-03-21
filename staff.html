@@ -474,7 +474,7 @@ body {
       <div class="totals-row"><span>Items</span><span id="sumItems">0</span></div>
       <div class="totals-row"><span>Subtotal</span><span id="sumSubtotal">₦0</span></div>
       <div class="totals-row">
-        <span>Advance Paid</span>
+        <span>Loan Deduction</span>
         <span><input type="number" id="calcDeposit" min="0" placeholder="0"
           style="width:100px;background:var(--surface3);border:1px solid rgba(255,255,255,0.1);color:var(--green);border-radius:6px;padding:3px 8px;font-size:13px;text-align:right;"
           oninput="calcTotals()"/></span>
@@ -861,6 +861,9 @@ async function saveOrder(andPrint) {
     if (res.error) throw res.error;
     _myOrders.unshift(res.data[0]);
     toast('✅ Task saved!');
+
+    // Loan deduction is recorded on the task — admin handles the deduction on their side
+
     clearForm();
     if (andPrint) { populateReceipt(res.data[0]); setTimeout(function() { window.print(); }, 200); }
   } catch(e) {
@@ -1289,12 +1292,90 @@ document.addEventListener('DOMContentLoaded', function() {
       <div id="lm-notes" style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--text-muted);"></div>
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;">Payment History</div>
       <div id="lm-payments" style="margin-bottom:16px;"></div>
+      <!-- Deduction is handled by admin only -->
+      <input type="hidden" id="lm-deduct-amount"/>
+      <input type="hidden" id="lm-deduct-note"/>
       <div style="display:flex;gap:10px;"><button class="btn btn-gold" style="flex:1;" onclick="printLoanFromModal()">&#128424; Print</button><button class="btn btn-ghost" style="flex:1;" onclick="shareLoanFromModal()">&#128228; Share</button></div>
     </div>
   </div>
 </div>
 
 <script>
+
+async function autoDeductFromLoan(amount, note) {
+  // Find the first outstanding loan for this staff
+  var loan = _myLoans.find(function(l) { return l.status !== 'Paid' && (l.balance || 0) > 0; });
+  if (!loan) { toast('⚠️ No active loan found — deduction not applied'); return; }
+
+  var newBalance = Math.max(0, (loan.balance || 0) - amount);
+  var newStatus  = newBalance <= 0 ? 'Paid' : loan.status;
+  var payments   = (loan.payments || []).concat([{
+    type:   'debit',
+    amount: amount,
+    date:   new Date().toISOString().slice(0, 10),
+    note:   note || 'Task deduction'
+  }]);
+
+  var res = await supa.from('loans').update({
+    balance:  newBalance,
+    status:   newStatus,
+    payments: payments
+  }).eq('id', loan.id);
+
+  if (res.error) { toast('⚠️ Task saved but loan deduction failed'); return; }
+
+  var idx = _myLoans.findIndex(function(x) { return String(x.id) === String(loan.id); });
+  if (idx >= 0) {
+    _myLoans[idx].balance  = newBalance;
+    _myLoans[idx].status   = newStatus;
+    _myLoans[idx].payments = payments;
+  }
+  toast('💳 ₦' + amount.toLocaleString() + ' deducted from loan profile!');
+}
+
+async function deductFromLoanModal() {
+  if (!_currentLoan) return;
+  var amount = parseFloat(document.getElementById('lm-deduct-amount').value) || 0;
+  if (!amount || amount <= 0) { toast('⚠️ Enter a valid amount'); return; }
+  var note = document.getElementById('lm-deduct-note').value.trim() || 'Manual deduction';
+
+  var l = _currentLoan;
+  var newBalance = Math.max(0, (l.balance || 0) - amount);
+  var newStatus  = newBalance <= 0 ? 'Paid' : l.status;
+  var payments   = (l.payments || []).concat([{
+    type:   'debit',
+    amount: amount,
+    date:   new Date().toISOString().slice(0, 10),
+    note:   note
+  }]);
+
+  var res = await supa.from('loans').update({
+    balance:  newBalance,
+    status:   newStatus,
+    payments: payments
+  }).eq('id', l.id);
+
+  if (res.error) { toast('❌ Failed to save deduction'); return; }
+
+  // Update local state
+  var idx = _myLoans.findIndex(function(x) { return String(x.id) === String(l.id); });
+  if (idx >= 0) {
+    _myLoans[idx].balance  = newBalance;
+    _myLoans[idx].status   = newStatus;
+    _myLoans[idx].payments = payments;
+  }
+  _currentLoan.balance  = newBalance;
+  _currentLoan.status   = newStatus;
+  _currentLoan.payments = payments;
+
+  // Clear inputs
+  document.getElementById('lm-deduct-amount').value = '';
+  document.getElementById('lm-deduct-note').value   = '';
+
+  // Refresh modal display
+  openLoanModal(l.id);
+  toast('💳 Deducted ₦' + amount.toLocaleString() + ' from loan!');
+}
 
 function printLoanFromModal() {
   if (!_currentLoan) return;
@@ -1366,7 +1447,7 @@ function openOrderModal(id) {
   if ((o.deposit||0) > 0) {
     totalsHtml +=
       '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;">' +
-      '<span style="color:var(--text-muted);">Advance Paid</span>' +
+      '<span style="color:var(--text-muted);">Loan Deduction</span>' +
       '<span style="color:var(--green);">₦' + o.deposit.toLocaleString() + '</span></div>';
   }
   totalsHtml +=
@@ -1540,6 +1621,45 @@ function openLoanModal(id) {
 function closeLoanModal() {
   document.getElementById('loanModal').style.display = 'none';
   _currentLoan = null;
+}
+
+async function deductFromLoanModal() {
+  if (!_currentLoan) return;
+  var amount = parseFloat(document.getElementById('lm-deduct-amount').value) || 0;
+  if (amount <= 0) { toast('⚠️ Enter a valid amount'); return; }
+  var note = document.getElementById('lm-deduct-note').value.trim() || 'Manual deduction';
+  var l = _currentLoan;
+  var newBalance = Math.max(0, (l.balance || 0) - amount);
+  var newStatus  = newBalance <= 0 ? 'Paid' : l.status;
+  var payments   = (l.payments || []).concat([{
+    type:   'debit',
+    amount: amount,
+    date:   new Date().toISOString().slice(0, 10),
+    note:   note
+  }]);
+  try {
+    var res = await supa.from('loans').update({
+      balance:  newBalance,
+      status:   newStatus,
+      payments: payments
+    }).eq('id', l.id);
+    if (res.error) throw res.error;
+    // Update local copy
+    var idx = _myLoans.findIndex(function(x) { return String(x.id) === String(l.id); });
+    if (idx >= 0) {
+      _myLoans[idx].balance  = newBalance;
+      _myLoans[idx].status   = newStatus;
+      _myLoans[idx].payments = payments;
+      _currentLoan = _myLoans[idx];
+    }
+    // Clear inputs and refresh modal display
+    document.getElementById('lm-deduct-amount').value = '';
+    document.getElementById('lm-deduct-note').value   = '';
+    openLoanModal(l.id);
+    toast('💳 Deduction of ₦' + amount.toLocaleString() + ' recorded!');
+  } catch(e) {
+    toast('⚠️ Failed: ' + (e.message || 'Check connection'));
+  }
 }
 
 function shareLoanFromModal() {
