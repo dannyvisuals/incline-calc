@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPA_URL = 'https://qcwnowbztttkdpgznufo.supabase.co';
@@ -2326,11 +2327,17 @@ header {
         <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--text);letter-spacing:-0.5px;">Staff Salary</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:1.5px;">Payment Records</div>
       </div>
-      <div style="position:relative;">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;">🔍</span>
-        <input type="text" id="salarySearch" placeholder="Search staff..." oninput="_drawSalaryGrid()"
-          style="background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:50px;padding:9px 14px 9px 34px;font-size:13px;outline:none;width:200px;transition:border-color 0.15s;"
-          onfocus="this.style.borderColor='rgba(16,185,129,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"/>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div style="position:relative;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" id="salarySearch" placeholder="Search staff..." oninput="_drawSalaryGrid()"
+            style="background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:50px;padding:9px 14px 9px 34px;font-size:13px;outline:none;width:200px;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='rgba(16,185,129,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"/>
+        </div>
+        <button onclick="exportSalaryExcel()" style="display:flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:var(--green);border-radius:50px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;white-space:nowrap;"
+          onmouseenter="this.style.background='rgba(16,185,129,0.2)'" onmouseleave="this.style.background='rgba(16,185,129,0.1)'">
+          <span style="font-size:15px;">📊</span> Export Excel
+        </button>
       </div>
     </div>
 
@@ -2666,6 +2673,26 @@ header {
         <div class="form-group full" style="margin:0;grid-column:1/-1;">
           <label>Account Name</label>
           <input type="text" id="newStaffAccountName" placeholder="e.g. Samuel Tom" oninput="staffFieldClear(this);"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Date of Birth</label>
+          <input type="date" id="newStaffDOB" oninput="staffFieldClear(this);"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Age</label>
+          <input type="number" id="newStaffAge" placeholder="e.g. 25" min="16" max="80" oninput="staffFieldClear(this);"/>
+        </div>
+        <div class="form-group full" style="margin:0;grid-column:1/-1;">
+          <label>Residential Address</label>
+          <input type="text" id="newStaffResidence" placeholder="e.g. 12 Rumuola Road, Port Harcourt" oninput="staffFieldClear(this);"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>State of Origin</label>
+          <input type="text" id="newStaffState" placeholder="e.g. Rivers State" oninput="staffFieldClear(this);"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Local Government Area</label>
+          <input type="text" id="newStaffLGA" placeholder="e.g. Obio-Akpor" oninput="staffFieldClear(this);"/>
         </div>
         <div class="form-group full" style="margin:0;grid-column:1/-1;">
           <button class="btn btn-gold" onclick="addStaff()" style="width:100%;padding:12px;font-size:14px;">+ Add Staff Member</button>
@@ -6332,7 +6359,7 @@ function staffFlagField(id) {
 function addStaff() {
   // Only required fields — name, staffId, password
   const requiredIds = ['newStaffName','newStaffStaffId','newStaffPassword'];
-  const allIds = ['newStaffName','newStaffStaffId','newStaffPassword','newStaffPhone','newStaffPosition','newStaffDept','newStaffBankName','newStaffAccountNumber','newStaffAccountName'];
+  const allIds = ['newStaffName','newStaffStaffId','newStaffPassword','newStaffPhone','newStaffPosition','newStaffDept','newStaffBankName','newStaffAccountNumber','newStaffAccountName','newStaffDOB','newStaffAge','newStaffResidence','newStaffState','newStaffLGA'];
 
   // Reset all borders first
   allIds.forEach(function(id) {
@@ -6390,6 +6417,11 @@ function addStaff() {
     bank_name: document.getElementById('newStaffBankName').value.trim(),
     account_number: acct,
     account_name: document.getElementById('newStaffAccountName').value.trim(),
+    date_of_birth: document.getElementById('newStaffDOB').value || null,
+    age: parseInt(document.getElementById('newStaffAge').value) || null,
+    residence: document.getElementById('newStaffResidence').value.trim(),
+    state_of_origin: document.getElementById('newStaffState').value.trim(),
+    lga: document.getElementById('newStaffLGA').value.trim(),
     photo
   };
 
@@ -6399,7 +6431,9 @@ function addStaff() {
       id: saved.id, name: saved.name, staffId: saved.staff_id,
       phone: saved.phone, position: saved.position, dept: saved.department,
       bankName: saved.bank_name, accountNumber: saved.account_number,
-      accountName: saved.account_name, photo: saved.photo, addedAt: saved.created_at
+      accountName: saved.account_name, photo: saved.photo, addedAt: saved.created_at,
+      dob: saved.date_of_birth || '', age: saved.age || '',
+      residence: saved.residence || '', state: saved.state_of_origin || '', lga: saved.lga || ''
     });
     saveStaffProfiles(list);
 
@@ -6584,6 +6618,11 @@ function openEditStaff(id) {
   document.getElementById('editStaffAcctNum').value  = s.accountNumber || '';
   document.getElementById('editStaffAcctName').value = s.accountName || '';
   document.getElementById('editStaffGender').value   = s.gender || '';
+  document.getElementById('editStaffDOB').value       = s.dob || '';
+  document.getElementById('editStaffAge').value       = s.age || '';
+  document.getElementById('editStaffResidence').value = s.residence || '';
+  document.getElementById('editStaffState').value     = s.state || '';
+  document.getElementById('editStaffLGA').value       = s.lga || '';
 
   // Set gender buttons
   setEditGender(s.gender || '');
@@ -6645,6 +6684,11 @@ async function saveEditStaff() {
   const position = document.getElementById('editStaffPosition').value.trim();
   const dept     = document.getElementById('editStaffDept').value.trim();
   const gender   = document.getElementById('editStaffGender').value;
+  const dob      = document.getElementById('editStaffDOB').value || null;
+  const age      = parseInt(document.getElementById('editStaffAge').value) || null;
+  const residence= document.getElementById('editStaffResidence').value.trim();
+  const state    = document.getElementById('editStaffState').value.trim();
+  const lga      = document.getElementById('editStaffLGA').value.trim();
   const bank     = document.getElementById('editStaffBank').value.trim();
   const acctNum  = document.getElementById('editStaffAcctNum').value.trim();
   const acctName = document.getElementById('editStaffAcctName').value.trim();
@@ -6661,7 +6705,8 @@ async function saveEditStaff() {
     const updates = {
       name, staff_id: staffId, phone,
       position, department: dept, gender,
-      bank_name: bank, account_number: acctNum, account_name: acctName
+      bank_name: bank, account_number: acctNum, account_name: acctName,
+      date_of_birth: dob, age, residence, state_of_origin: state, lga
     };
     if (password) updates.password = password;
     if (_editStaffPhotoData) updates.photo = _editStaffPhotoData;
@@ -6682,13 +6727,17 @@ async function saveEditStaff() {
         gender: row.gender || '',
         bankName: row.bank_name, accountNumber: row.account_number,
         accountName: row.account_name,
-        photo: row.photo || list[idx].photo, addedAt: row.created_at
+        photo: row.photo || list[idx].photo, addedAt: row.created_at,
+        dob: row.date_of_birth || '', age: row.age || '',
+        residence: row.residence || '', state: row.state_of_origin || '', lga: row.lga || ''
       };
     } else if (idx >= 0) {
       // Patch directly if Supabase didn't return the row
       list[idx].name = name; list[idx].staffId = staffId; list[idx].phone = phone;
       list[idx].position = position; list[idx].dept = dept; list[idx].gender = gender;
       list[idx].bankName = bank; list[idx].accountNumber = acctNum; list[idx].accountName = acctName;
+      list[idx].dob = dob; list[idx].age = age; list[idx].residence = residence;
+      list[idx].state = state; list[idx].lga = lga;
       if (_editStaffPhotoData) list[idx].photo = _editStaffPhotoData;
     }
     saveStaffProfiles(list);
@@ -7395,6 +7444,26 @@ if ('serviceWorker' in navigator) {
           <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Account Name</label>
           <input type="text" id="editStaffAcctName" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
         </div>
+        <div class="form-group" style="margin:0;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Date of Birth</label>
+          <input type="date" id="editStaffDOB" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Age</label>
+          <input type="number" id="editStaffAge" min="16" max="80" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+        <div class="form-group" style="margin:0;grid-column:1/-1;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Residential Address</label>
+          <input type="text" id="editStaffResidence" placeholder="e.g. 12 Rumuola Road, Port Harcourt" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">State of Origin</label>
+          <input type="text" id="editStaffState" placeholder="e.g. Rivers State" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Local Government Area</label>
+          <input type="text" id="editStaffLGA" placeholder="e.g. Obio-Akpor" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:20px;">
@@ -7779,6 +7848,130 @@ function closeSalaryProfile() {
   document.getElementById('salary-main-screen').style.display    = 'block';
   window.scrollTo({ top: 0, behavior: 'instant' });
   _drawSalaryGrid();
+}
+
+async function exportSalaryExcel() {
+  showToast('📊 Preparing Excel file…');
+
+  // Fetch fresh data
+  let salaries = _allSalariesCache;
+  if (!salaries || !salaries.length) {
+    salaries = await sbGetSalaries();
+  }
+  if (!salaries.length) { showToast('⚠️ No salary records to export'); return; }
+
+  // Sort by staff name then date
+  salaries = [...salaries].sort(function(a, b) {
+    var n = (a.staff_name || '').localeCompare(b.staff_name || '');
+    if (n !== 0) return n;
+    return (a.date_paid || '').localeCompare(b.date_paid || '');
+  });
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: All Payments (detailed) ──
+  const detailRows = [
+    ['INCLINEWORKS INT\'L — SALARY PAYMENT RECORDS'],
+    ['Generated: ' + new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) + ' at ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })],
+    [],
+    ['S/N', 'Staff Name', 'Staff ID', 'Payment Type', 'Date Paid', 'Time Paid', 'Amount (₦)', 'Notes']
+  ];
+
+  let sn = 1;
+  let grandTotal = 0;
+  salaries.forEach(function(s) {
+    detailRows.push([
+      sn++,
+      s.staff_name || '',
+      s.staff_id || '',
+      s.salary_type || '',
+      s.date_paid || '',
+      s.time_paid ? s.time_paid.slice(0,5) : '',
+      s.amount || 0,
+      s.notes || ''
+    ]);
+    grandTotal += (s.amount || 0);
+  });
+
+  detailRows.push([]);
+  detailRows.push(['', '', '', '', '', 'GRAND TOTAL', grandTotal, '']);
+
+  const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+
+  // Column widths
+  wsDetail['!cols'] = [
+    { wch: 5 }, { wch: 22 }, { wch: 14 }, { wch: 14 },
+    { wch: 13 }, { wch: 10 }, { wch: 16 }, { wch: 30 }
+  ];
+
+  // Merge title cells A1:H1
+  wsDetail['!merges'] = [
+    { s: { r:0, c:0 }, e: { r:0, c:7 } },
+    { s: { r:1, c:0 }, e: { r:1, c:7 } }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'All Payments');
+
+  // ── Sheet 2: Summary by Staff ──
+  const staffTotals = {};
+  salaries.forEach(function(s) {
+    const name = s.staff_name || 'Unknown';
+    const sid  = s.staff_id   || '';
+    if (!staffTotals[name]) staffTotals[name] = { staff_id: sid, total: 0, count: 0, types: {} };
+    staffTotals[name].total += (s.amount || 0);
+    staffTotals[name].count++;
+    const t = s.salary_type || 'Other';
+    staffTotals[name].types[t] = (staffTotals[name].types[t] || 0) + (s.amount || 0);
+  });
+
+  const summaryRows = [
+    ['INCLINEWORKS INT\'L — SALARY SUMMARY BY STAFF'],
+    ['Generated: ' + new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })],
+    [],
+    ['S/N', 'Staff Name', 'Staff ID', 'Total Paid (₦)', 'No. of Payments', 'Monthly (₦)', 'Weekly (₦)', 'Daily (₦)', 'Bonus (₦)', 'Advance (₦)', 'Other (₦)']
+  ];
+
+  let ssn = 1;
+  let summaryTotal = 0;
+  Object.entries(staffTotals).sort(function(a,b) { return a[0].localeCompare(b[0]); }).forEach(function(entry) {
+    const name = entry[0];
+    const d    = entry[1];
+    summaryRows.push([
+      ssn++,
+      name,
+      d.staff_id,
+      d.total,
+      d.count,
+      d.types['Monthly']  || 0,
+      d.types['Weekly']   || 0,
+      d.types['Daily']    || 0,
+      d.types['Bonus']    || 0,
+      d.types['Advance']  || 0,
+      d.types['Other']    || 0
+    ]);
+    summaryTotal += d.total;
+  });
+
+  summaryRows.push([]);
+  summaryRows.push(['', 'TOTAL', '', summaryTotal, salaries.length, '', '', '', '', '', '']);
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary['!cols'] = [
+    { wch: 5 }, { wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 16 },
+    { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }
+  ];
+  wsSummary['!merges'] = [
+    { s: { r:0, c:0 }, e: { r:0, c:10 } },
+    { s: { r:1, c:0 }, e: { r:1, c:10 } }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Staff Summary');
+
+  // ── Download ──
+  const today = new Date().toISOString().slice(0,10);
+  const filename = 'InclineWorks_Salary_' + today + '.xlsx';
+  XLSX.writeFile(wb, filename);
+  showToast('✅ Excel file downloaded: ' + filename);
 }
 </script>
 
