@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Incline Cal — Admin Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -15,55 +17,60 @@ const SUPA_URL = 'https://qcwnowbztttkdpgznufo.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjd25vd2J6dHR0a2RwZ3pudWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTM0OTQsImV4cCI6MjA4ODg4OTQ5NH0.8GpWJEFd427t6a0HoukYC0RGG1clM1UdjwKgzRMY72g';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+// ── Plain fetch helpers — avoids DataCloneError from Supabase client's Headers object ──
+async function _sbFetch(path, opts) {
+  const url = SUPA_URL + '/rest/v1/' + path;
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': opts && opts.prefer ? opts.prefer : 'return=representation'
+  };
+  const res = await fetch(url, { method: opts && opts.method || 'GET', headers, body: opts && opts.body ? JSON.stringify(opts.body) : undefined });
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return await res.json();
+  return null;
+}
+
 async function sbGetStaff() {
-  const { data, error } = await supa.from('staff').select('*').order('created_at', { ascending: false });
-  return error ? [] : (data || []);
+  const data = await _sbFetch('staff?select=*&order=created_at.desc');
+  return Array.isArray(data) ? data : [];
 }
 async function sbAddStaff(profile) {
-  const { data, error } = await supa.from('staff').insert([profile]).select();
-  if (error) throw error; 
-  return data[0];
+  const data = await _sbFetch('staff', { method: 'POST', body: profile, prefer: 'return=representation' });
+  return Array.isArray(data) ? data[0] : data;
 }
 async function sbDeleteStaff(id) {
-  const { error } = await supa.from('staff').delete().eq('id', String(id));
-  if (error) throw error;
+  await _sbFetch('staff?id=eq.' + id, { method: 'DELETE', prefer: 'return=minimal' });
 }
 async function sbUpdateStaffPhoto(id, photo) {
-  const { error } = await supa.from('staff').update({ photo }).eq('id', Number(id));
-  if (error) throw error;
+  await _sbFetch('staff?id=eq.' + id, { method: 'PATCH', body: { photo }, prefer: 'return=minimal' });
 }
-async function sbGetOrders(staffId) { 
-  let q = supa.from('orders').select('*').order('created_at', { ascending: false });
-  if (staffId) q = q.eq('staff_id', staffId);
-  const { data, error } = await q;
-  return error ? [] : (data || []);
+async function sbGetOrders(staffId) {
+  const path = 'orders?select=*&order=created_at.desc' + (staffId ? '&staff_id=eq.' + staffId : '');
+  try { const data = await _sbFetch(path); return Array.isArray(data) ? data : []; } catch(e) { return []; }
 }
 async function sbSaveOrder(order) {
-  const { data, error } = await supa.from('orders').insert([order]).select();
-  if (error) throw error;
-  return data[0];
+  const data = await _sbFetch('orders', { method: 'POST', body: order, prefer: 'return=representation' });
+  return Array.isArray(data) ? data[0] : data;
 }
 
 // ── PRICES ──
 async function sbGetPrices() {
-  const { data, error } = await supa.from('prices').select('*').order('cat').order('name');
-  return error ? null : (data || []);
+  try { const data = await _sbFetch('prices?select=*&order=cat.asc,name.asc'); return Array.isArray(data) ? data : []; } catch(e) { return null; }
 }
 async function sbSavePrices(services) {
-  // Upsert all prices
   const rows = services.map(s => ({ name: s.name, cat: s.cat, price: s.price, custom: s.custom || false }));
-  const { error } = await supa.from('prices').upsert(rows, { onConflict: 'name' });
-  if (error) throw error;
+  await _sbFetch('prices?on_conflict=name', { method: 'POST', body: rows, prefer: 'resolution=merge-duplicates,return=minimal' });
 }
 async function sbDeletePrice(name) {
-  const { error } = await supa.from('prices').delete().eq('name', name);
-  if (error) throw error;
+  await _sbFetch('prices?name=eq.' + encodeURIComponent(name), { method: 'DELETE', prefer: 'return=minimal' });
 }
 
 // ── LOANS ──
 async function sbGetLoans() {
-  const { data, error } = await supa.from('loans').select('*').order('created_at', { ascending: false });
-  return error ? null : (data || []);
+  try { const data = await _sbFetch('loans?select=*&order=created_at.desc'); return Array.isArray(data) ? data : []; } catch(e) { return null; }
 }
 async function sbSaveLoan(loan) {
   const row = {
@@ -73,46 +80,40 @@ async function sbSaveLoan(loan) {
     collected_date: loan.collectedDate || '', due_date: loan.dueDate || '',
     notes: loan.notes || '', payments: loan.payments || []
   };
-  const { error } = await supa.from('loans').upsert([row], { onConflict: 'id' });
-  if (error) throw error;
+  await _sbFetch('loans?on_conflict=id', { method: 'POST', body: row, prefer: 'resolution=merge-duplicates,return=minimal' });
 }
 async function sbDeleteLoan(id) {
-  const { error } = await supa.from('loans').delete().eq('id', Number(id));
-  if (error) throw error;
+  await _sbFetch('loans?id=eq.' + Number(id), { method: 'DELETE', prefer: 'return=minimal' });
 }
 async function sbUpdateLoan(loan) {
-  // Try update by id first
-  const { error } = await supa.from('loans').update({
-    balance: loan.balance, status: loan.status,
-    payments: loan.payments || [], client_name: loan.clientName,
-    staff_id: loan.staffId || '',
-    client_phone: loan.clientPhone || '', notes: loan.notes || ''
-  }).eq('id', Number(loan.id));
-  if (error) {
-    // Fallback: upsert the whole row
-    await sbSaveLoan(loan);
-  }
+  try {
+    await _sbFetch('loans?id=eq.' + Number(loan.id), { method: 'PATCH', prefer: 'return=minimal', body: {
+      balance: loan.balance, status: loan.status, amount: loan.amount || 0,
+      payments: loan.payments || [], client_name: loan.clientName,
+      staff_id: loan.staffId || '',
+      client_phone: loan.clientPhone || '', notes: loan.notes || '',
+      collected_date: loan.collectedDate || '', due_date: loan.dueDate || ''
+    }});
+  } catch(e) { await sbSaveLoan(loan); }
 }
 
 // ── SALARY ──
 async function sbGetSalaries(staffId) {
-  let q = supa.from('salaries').select('*').order('date_paid', { ascending: false }).order('time_paid', { ascending: false });
-  if (staffId) q = q.eq('staff_id', staffId);
-  const { data, error } = await q;
-  return error ? [] : (data || []);
+  try {
+    const path = 'salaries?select=*&order=date_paid.desc,time_paid.desc' + (staffId ? '&staff_id=eq.' + staffId : '');
+    const data = await _sbFetch(path);
+    return Array.isArray(data) ? data : [];
+  } catch(e) { return []; }
 }
 async function sbAddSalary(entry) {
-  const { data, error } = await supa.from('salaries').insert([entry]).select();
-  if (error) throw error;
-  return data[0];
+  const data = await _sbFetch('salaries', { method: 'POST', body: entry, prefer: 'return=representation' });
+  return Array.isArray(data) ? data[0] : data;
 }
 async function sbUpdateSalary(id, entry) {
-  const { error } = await supa.from('salaries').update(entry).eq('id', id);
-  if (error) throw error;
+  await _sbFetch('salaries?id=eq.' + id, { method: 'PATCH', body: entry, prefer: 'return=minimal' });
 }
 async function sbDeleteSalary(id) {
-  const { error } = await supa.from('salaries').delete().eq('id', id);
-  if (error) throw error;
+  await _sbFetch('salaries?id=eq.' + id, { method: 'DELETE', prefer: 'return=minimal' });
 }
 </script>
 <script>
@@ -440,7 +441,7 @@ header {
 
 .tab-content {
   display: none;
-  text-align: center;
+  text-align: left;
   padding: 20px 0 60px;
 }
 
@@ -1333,6 +1334,497 @@ header {
   20%,60% { transform: translateX(-8px); }
   40%,80% { transform: translateX(8px); }
 }
+
+
+.trk-wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+.trk-heading {
+  padding: 24px 0 28px;
+  text-align: center;
+}
+.trk-heading-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 30px; font-weight: 700; color: var(--text);
+  margin-bottom: 6px;
+}
+.trk-heading-title em { color: var(--green); font-style: normal; }
+.trk-heading-sub {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 2.5px;
+}
+
+/* Mode pills */
+.trk-mode-row {
+  display: flex; gap: 6px;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 5px;
+  margin-bottom: 16px;
+}
+.trk-mode-btn {
+  flex: 1; padding: 9px 12px;
+  border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  transition: all 0.18s;
+  background: transparent;
+  color: var(--text-muted);
+}
+.trk-mode-btn.active {
+  background: rgba(16,185,129,0.15);
+  color: var(--green);
+  box-shadow: 0 2px 10px rgba(16,185,129,0.1);
+}
+.trk-mode-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
+
+/* Search box */
+.trk-search-box {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.trk-input-row {
+  display: flex; gap: 10px;
+}
+.trk-input-wrap { flex: 1; position: relative; }
+.trk-input-wrap input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text); border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 15px; outline: none;
+  font-family: inherit; box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.trk-input-wrap input:focus { border-color: rgba(16,185,129,0.45); }
+.trk-search-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: #0a0f0a; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+  transition: opacity 0.15s, transform 0.12s;
+}
+.trk-search-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.trk-hint {
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 10px; text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.trk-clear-btn {
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted);
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.trk-clear-btn:hover {
+  background: rgba(224,82,82,0.1);
+  border-color: rgba(224,82,82,0.3);
+  color: var(--red);
+}
+
+/* Result area */
+#trackerResult { animation: tabFadeIn 0.2s ease; }
+
+
+.sal-card {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 18px;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
+.sal-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.sal-card:hover { transform: translateY(-2px); border-color: rgba(16,185,129,0.3); box-shadow: 0 8px 32px rgba(16,185,129,0.08); }
+.sal-card:hover::before { opacity: 1; }
+.sal-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.1));
+  border: 1.5px solid rgba(16,185,129,0.25);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0; font-size: 20px;
+}
+.sal-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.sal-entry {
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.15s;
+  animation: salSlideIn 0.2s ease;
+}
+.sal-entry:hover { border-color: rgba(16,185,129,0.2); }
+@keyframes salSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sal-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.sal-input:focus { border-color: rgba(16,185,129,0.5); }
+.sal-stat-box {
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 14px;
+  padding: 18px 16px;
+  text-align: center;
+}
+
+
+.stype-pill {
+  padding: 6px 14px;
+  border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--surface2);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.stype-pill:hover { border-color: rgba(16,185,129,0.3); color: var(--text); }
+.active-pill { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: var(--green); }
+@keyframes salShake {
+  0%,100% { transform: translateX(0); }
+  20%,60%  { transform: translateX(-5px); }
+  40%,80%  { transform: translateX(5px); }
+}
+.sal-shake { animation: salShake 0.35s ease; border-color: var(--red) !important; }
+
+
+/* ══════════════════════════════════════
+   INCLINEWORKS — ELEGANT PRICE MANAGER
+   ══════════════════════════════════════ */
+
+/* Shell: price list left, sticky sidebar right */
+.pa-shell {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+  align-items: start;
+}
+
+/* ── LEFT column ── */
+.pa-left { min-width: 0; }
+
+/* Brand header */
+.pa-brand {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 0 18px;
+  border-bottom: 1px solid rgba(16,185,129,0.12);
+  margin-bottom: 4px;
+}
+.pa-brand-logo {
+  width: 46px; height: 46px; border-radius: 12px;
+  overflow: hidden; border: 1px solid rgba(16,185,129,0.22);
+  flex-shrink: 0; background: rgba(16,185,129,0.06);
+}
+.pa-brand-logo img { width:100%; height:100%; object-fit:contain; }
+.pa-brand-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.1;
+}
+.pa-brand-name em { color: var(--green); font-style: normal; }
+.pa-brand-sub {
+  font-size: 9px; color: var(--text-muted);
+  letter-spacing: 2.5px; text-transform: uppercase; margin-top: 3px;
+}
+.pa-brand-meta {
+  font-size: 10px; color: rgba(255,255,255,0.13);
+  text-align: right; line-height: 1.8; letter-spacing: 0.5px;
+}
+
+/* Table */
+.pa-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+/* Category header */
+.pa-cat-row td {
+  padding: 22px 4px 10px;
+  border-bottom: 1px solid rgba(16,185,129,0.15);
+}
+.pa-cat-inner { display: flex; align-items: center; gap: 10px; }
+.pa-cat-icon {
+  width: 30px; height: 30px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.18);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.pa-cat-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px; font-weight: 700; color: var(--text); flex: 1;
+}
+.pa-cat-badge {
+  font-size: 10px; color: rgba(16,185,129,0.55);
+  background: rgba(16,185,129,0.07);
+  border: 1px solid rgba(16,185,129,0.13);
+  border-radius: 20px; padding: 3px 12px; font-weight: 600;
+}
+
+/* Service rows */
+.pa-svc-row { transition: background 0.12s; }
+.pa-svc-row:hover { background: rgba(16,185,129,0.04); }
+.pa-svc-row.pa-alt { background: rgba(255,255,255,0.013); }
+.pa-svc-row.pa-alt:hover { background: rgba(16,185,129,0.05); }
+.pa-svc-row td {
+  padding: 11px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  vertical-align: middle;
+}
+.pa-svc-name {
+  font-size: 15px; color: rgba(240,234,214,0.82);
+  font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-right: 12px;
+}
+.pa-svc-badge {
+  display: inline-block; font-size: 8px;
+  background: rgba(201,168,76,0.15); color: var(--gold);
+  border-radius: 4px; padding: 1px 6px; margin-left: 8px;
+  font-weight: 700; letter-spacing: 0.5px; vertical-align: middle;
+}
+.pa-price-cell { text-align: right; white-space: nowrap; width: 110px; }
+.pa-price-inner { display: inline-flex; align-items: center; gap: 5px; }
+.pa-naira { font-size: 12px; font-weight: 700; color: rgba(16,185,129,0.5); }
+.pa-inp {
+  width: 78px;
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.15);
+  color: var(--green); border-radius: 7px;
+  padding: 6px 9px; font-size: 15px; font-weight: 700;
+  font-family: 'Cormorant Garamond', serif;
+  text-align: right; outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pa-inp:focus { border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.1); }
+.pa-del-cell { width: 26px; text-align: center; }
+.pa-del {
+  background: none; border: none; color: rgba(224,82,82,0.3);
+  cursor: pointer; font-size: 11px; padding: 4px; border-radius: 4px;
+  transition: color 0.15s;
+}
+.pa-del:hover { color: var(--red); }
+
+/* ── RIGHT: Sticky sidebar ── */
+.pa-right {
+  position: sticky;
+  top: 130px; /* below header+tabs */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pa-sidebar-card {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 16px;
+}
+.pa-sidebar-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--text-muted);
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.pa-sidebar-label::before {
+  content: ''; width: 3px; height: 12px;
+  background: linear-gradient(180deg, var(--gold), var(--gold-light));
+  border-radius: 2px; flex-shrink: 0;
+}
+
+/* Search */
+.pa-search { position: relative; }
+.pa-search input {
+  width: 100%; background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: var(--text); border-radius: 8px;
+  padding: 9px 12px 9px 34px;
+  font-size: 13px; outline: none; box-sizing: border-box;
+  transition: border-color 0.15s; font-family: inherit;
+}
+.pa-search input:focus { border-color: rgba(16,185,129,0.4); }
+.pa-search-icon {
+  position: absolute; left: 11px; top: 50%;
+  transform: translateY(-50%); color: var(--text-muted);
+  font-size: 13px; pointer-events: none;
+}
+
+/* Save */
+.pa-save-btn {
+  width: 100%; padding: 11px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: #0a0f0a; border: none; border-radius: 9px;
+  font-size: 13px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: opacity 0.15s, transform 0.12s;
+}
+.pa-save-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.pa-status {
+  font-size: 11px; color: var(--text-muted);
+  text-align: center; margin-top: 8px;
+}
+
+/* Add form */
+.pa-add-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 9px; }
+.pa-add-field label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: rgba(16,185,129,0.5);
+}
+.pa-add-field input, .pa-add-field select {
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: var(--text); border-radius: 8px;
+  padding: 8px 10px; font-size: 13px; outline: none;
+  font-family: inherit; transition: border-color 0.15s;
+}
+.pa-add-field input:focus, .pa-add-field select:focus { border-color: rgba(16,185,129,0.4); }
+.pa-add-btn {
+  width: 100%; padding: 10px;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.25);
+  color: var(--green); border-radius: 8px;
+  font-size: 13px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: all 0.15s;
+}
+.pa-add-btn:hover { background: rgba(16,185,129,0.2); border-color: rgba(16,185,129,0.45); }
+
+/* Responsive */
+@media (max-width: 680px) {
+  .pa-shell { grid-template-columns: 1fr; }
+  .pa-right { position: static; }
+}
+
+
+@keyframes confirmPop {
+  from { opacity:0; transform:scale(0.88) translateY(16px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+
+
+.anx-wrap { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* Header */
+.anx-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; padding: 24px 0 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;
+}
+.anx-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700; color: var(--text); }
+.anx-title em { color: var(--green); font-style: normal; }
+.anx-sub { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+.anx-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.anx-sel {
+  background: var(--surface2); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text); border-radius: 8px; padding: 8px 12px;
+  font-size: 12px; outline: none; font-family: inherit; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.anx-sel:focus { border-color: rgba(16,185,129,0.4); }
+
+/* Summary pills */
+.anx-pills { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.anx-pill {
+  background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 14px;
+}
+.anx-pill-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);
+  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+}
+.anx-pill-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; color: var(--green); line-height: 1; }
+.anx-pill-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-top: 3px; }
+
+/* Card */
+.anx-card {
+  background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 20px; margin-bottom: 16px;
+}
+.anx-card-title {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.anx-card-title::before {
+  content: ''; width: 3px; height: 14px;
+  background: linear-gradient(180deg, var(--gold), var(--gold-light));
+  border-radius: 2px; flex-shrink: 0;
+}
+
+/* Service rows */
+.anx-svc-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.1s;
+}
+.anx-svc-row:hover { background: rgba(16,185,129,0.03); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
+.anx-svc-row:last-child { border-bottom: none; }
+.anx-svc-rank { font-size: 10px; color: rgba(255,255,255,0.15); width: 20px; text-align: right; flex-shrink: 0; font-family: 'Cormorant Garamond', serif; }
+.anx-svc-name { flex: 1; font-size: 14px; color: rgba(240,234,214,0.82); font-weight: 400; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.anx-svc-cat { font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+.anx-svc-bar-wrap { flex: 0 0 140px; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.anx-svc-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.anx-svc-qty { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 700; color: var(--green); width: 36px; text-align: right; flex-shrink: 0; }
+.anx-svc-unit { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+
+/* Empty state */
+.anx-empty { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 13px; }
+.anx-empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+@media (max-width: 600px) {
+  .anx-pills { grid-template-columns: 1fr 1fr; }
+  .anx-svc-bar-wrap { display: none; }
+}
+
+
 </style>
 </head>
 <body style="background-color:#080d09;">
@@ -1413,6 +1905,11 @@ header {
 
 <div class="header-right">
 
+  <!-- Calculator toggle button -->
+  <button class="btn btn-ghost" id="calcToggleBtn" title="Calculator" onclick="toggleCalcDropdown()" style="position:relative;">
+    <span class="icon material-icons">calculate</span>
+  </button>
+
   <button class="btn btn-ghost" id="exportCsvBtn" title="Export CSV">
     <span class="icon material-icons">download</span>
   </button>
@@ -1435,6 +1932,272 @@ header {
 
 </div>
 </header>
+
+<!-- ── CALCULATOR DROPDOWN ── -->
+<div id="calcDropdown" style="
+  display:none;
+  position:fixed;
+  top:90px;
+  right:calc(5% + 8px);
+  z-index:500;
+  width:300px;
+  background:#111a13;
+  border:1px solid rgba(16,185,129,0.25);
+  border-radius:20px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.75),0 2px 0 rgba(16,185,129,0.1) inset;
+  overflow:hidden;
+  animation:calcSlideIn 0.22s cubic-bezier(0.34,1.3,0.64,1);
+  transform-origin:top right;
+">
+<style>
+@keyframes calcSlideIn {
+  from { opacity:0; transform:scale(0.88) translateY(-10px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+.calc-display-wrap {
+  padding:18px 18px 10px;
+  background:rgba(0,0,0,0.35);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.calc-expr {
+  font-size:11px;
+  color:rgba(16,185,129,0.5);
+  letter-spacing:0.5px;
+  min-height:16px;
+  text-align:right;
+  font-family:'DM Sans',sans-serif;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.calc-display {
+  font-family:'Cormorant Garamond','Georgia',serif;
+  font-size:38px;
+  font-weight:700;
+  color:#F0EAD6;
+  text-align:right;
+  line-height:1.15;
+  letter-spacing:-1px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.calc-display.has-error { color:#f87171; font-size:22px; }
+.calc-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  padding:12px;
+}
+.calc-btn {
+  border:none;
+  border-radius:12px;
+  padding:16px 6px;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  transition:transform 0.08s ease, filter 0.1s ease;
+  line-height:1;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.calc-btn:active { transform:scale(0.91); filter:brightness(1.25); }
+.calc-btn.num  { background:rgba(255,255,255,0.06); color:#F0EAD6; border:1px solid rgba(255,255,255,0.07); }
+.calc-btn.num:hover  { background:rgba(255,255,255,0.11); }
+.calc-btn.op   { background:rgba(16,185,129,0.12); color:#34D399; border:1px solid rgba(16,185,129,0.2); }
+.calc-btn.op:hover   { background:rgba(16,185,129,0.22); }
+.calc-btn.eq   { background:linear-gradient(135deg,#059669,#10B981); color:#fff; border:none;
+  box-shadow:0 4px 14px rgba(16,185,129,0.35); }
+.calc-btn.eq:hover   { filter:brightness(1.1); }
+.calc-btn.clear{ background:rgba(224,82,82,0.12); color:#f87171; border:1px solid rgba(224,82,82,0.2); }
+.calc-btn.clear:hover{ background:rgba(224,82,82,0.22); }
+.calc-btn.func { background:rgba(255,255,255,0.04); color:#aaa; border:1px solid rgba(255,255,255,0.06); font-size:13px; }
+.calc-btn.func:hover { background:rgba(255,255,255,0.09); color:#F0EAD6; }
+.calc-btn.zero { grid-column:span 2; }
+</style>
+
+<div class="calc-display-wrap">
+  <div class="calc-expr" id="calcExpr">&nbsp;</div>
+  <div class="calc-display" id="calcDisplay">0</div>
+</div>
+
+<div class="calc-grid">
+  <!-- Row 1 -->
+  <button class="calc-btn clear" onclick="calcAC()">AC</button>
+  <button class="calc-btn func"  onclick="calcToggleSign()">+/−</button>
+  <button class="calc-btn func"  onclick="calcPercent()">%</button>
+  <button class="calc-btn op"    onclick="calcOp('÷')">÷</button>
+  <!-- Row 2 -->
+  <button class="calc-btn num"   onclick="calcNum('7')">7</button>
+  <button class="calc-btn num"   onclick="calcNum('8')">8</button>
+  <button class="calc-btn num"   onclick="calcNum('9')">9</button>
+  <button class="calc-btn op"    onclick="calcOp('×')">×</button>
+  <!-- Row 3 -->
+  <button class="calc-btn num"   onclick="calcNum('4')">4</button>
+  <button class="calc-btn num"   onclick="calcNum('5')">5</button>
+  <button class="calc-btn num"   onclick="calcNum('6')">6</button>
+  <button class="calc-btn op"    onclick="calcOp('−')">−</button>
+  <!-- Row 4 -->
+  <button class="calc-btn num"   onclick="calcNum('1')">1</button>
+  <button class="calc-btn num"   onclick="calcNum('2')">2</button>
+  <button class="calc-btn num"   onclick="calcNum('3')">3</button>
+  <button class="calc-btn op"    onclick="calcOp('+')">+</button>
+  <!-- Row 5 -->
+  <button class="calc-btn num zero" onclick="calcNum('0')">0</button>
+  <button class="calc-btn num"   onclick="calcDot()">.</button>
+  <button class="calc-btn eq"    onclick="calcEquals()">=</button>
+</div>
+</div>
+
+<script>
+(function(){
+  var _cVal  = '0';    // current display value
+  var _cExpr = '';     // expression string shown above
+  var _cOp   = null;   // pending operator
+  var _cPrev = null;   // previous number
+  var _cFresh= false;  // next digit press starts fresh
+
+  function _disp() {
+    var el = document.getElementById('calcDisplay');
+    var ex = document.getElementById('calcExpr');
+    if (el) {
+      el.textContent = _cVal;
+      el.className = 'calc-display' + (_cVal === 'Error' ? ' has-error' : '');
+    }
+    if (ex) ex.textContent = _cExpr || '\u00a0';
+  }
+
+  function _fmt(n) {
+    // Show up to 10 sig digits, strip trailing zeros after decimal
+    if (!isFinite(n)) return 'Error';
+    var s = parseFloat(n.toPrecision(10)).toString();
+    return s;
+  }
+
+  window.calcNum = function(d) {
+    if (_cVal === 'Error') { calcAC(); }
+    if (_cFresh || _cVal === '0') {
+      _cVal = d; _cFresh = false;
+    } else {
+      if (_cVal.replace('-','').length >= 12) return;
+      _cVal += d;
+    }
+    _disp();
+  };
+
+  window.calcDot = function() {
+    if (_cFresh) { _cVal = '0'; _cFresh = false; }
+    if (!_cVal.includes('.')) _cVal += '.';
+    _disp();
+  };
+
+  window.calcOp = function(op) {
+    if (_cVal === 'Error') { calcAC(); return; }
+    if (_cOp && !_cFresh) {
+      // Chain: evaluate previous op first
+      calcEquals(true);
+    }
+    _cPrev = parseFloat(_cVal);
+    _cOp   = op;
+    _cExpr = _cVal + ' ' + op;
+    _cFresh = true;
+    _disp();
+  };
+
+  window.calcEquals = function(chain) {
+    if (_cOp === null || _cPrev === null) return;
+    var cur  = parseFloat(_cVal);
+    var res;
+    switch(_cOp) {
+      case '+': res = _cPrev + cur; break;
+      case '−': res = _cPrev - cur; break;
+      case '×': res = _cPrev * cur; break;
+      case '÷': res = cur === 0 ? NaN : _cPrev / cur; break;
+      default:  res = cur;
+    }
+    if (!isFinite(res)) {
+      _cExpr = _cVal + ' ' + _cOp + ' ' + cur + ' =';
+      _cVal  = 'Error';
+      _cOp   = null; _cPrev = null; _cFresh = true;
+    } else {
+      if (!chain) _cExpr = (_cExpr || _cPrev) + ' ' + _cVal + ' =';
+      _cVal  = _fmt(res);
+      if (!chain) { _cOp = null; _cPrev = null; }
+      else { _cPrev = res; }
+      _cFresh = true;
+    }
+    _disp();
+  };
+
+  window.calcAC = function() {
+    _cVal = '0'; _cExpr = ''; _cOp = null; _cPrev = null; _cFresh = false;
+    _disp();
+  };
+
+  window.calcToggleSign = function() {
+    if (_cVal === '0' || _cVal === 'Error') return;
+    _cVal = _cVal.startsWith('-') ? _cVal.slice(1) : '-' + _cVal;
+    _disp();
+  };
+
+  window.calcPercent = function() {
+    var n = parseFloat(_cVal);
+    if (!isFinite(n)) return;
+    _cVal = _fmt(n / 100);
+    _disp();
+  };
+
+  window.toggleCalcDropdown = function() {
+    var d = document.getElementById('calcDropdown');
+    var btn = document.getElementById('calcToggleBtn');
+    if (!d) return;
+    var open = d.style.display !== 'none';
+    if (open) {
+      d.style.display = 'none';
+      if (btn) btn.style.color = '';
+    } else {
+      d.style.display = 'block';
+      d.style.animation = 'none';
+      void d.offsetWidth;
+      d.style.animation = 'calcSlideIn 0.22s cubic-bezier(0.34,1.3,0.64,1)';
+      if (btn) btn.style.color = '#10B981';
+    }
+  };
+
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    var d   = document.getElementById('calcDropdown');
+    var btn = document.getElementById('calcToggleBtn');
+    if (!d || d.style.display === 'none') return;
+    if (!d.contains(e.target) && !btn.contains(e.target)) {
+      d.style.display = 'none';
+      if (btn) btn.style.color = '';
+    }
+  });
+
+  // Keyboard support when dropdown is open
+  document.addEventListener('keydown', function(e) {
+    var d = document.getElementById('calcDropdown');
+    if (!d || d.style.display === 'none') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if ('0123456789'.includes(e.key)) { calcNum(e.key); e.preventDefault(); }
+    else if (e.key === '.')  { calcDot();        e.preventDefault(); }
+    else if (e.key === '+')  { calcOp('+');       e.preventDefault(); }
+    else if (e.key === '-')  { calcOp('−');       e.preventDefault(); }
+    else if (e.key === '*')  { calcOp('×');       e.preventDefault(); }
+    else if (e.key === '/')  { calcOp('÷');       e.preventDefault(); }
+    else if (e.key === 'Enter' || e.key === '=') { calcEquals(); e.preventDefault(); }
+    else if (e.key === 'Escape') { toggleCalcDropdown(); e.preventDefault(); }
+    else if (e.key === 'Backspace') {
+      if (_cVal.length > 1 && _cVal !== 'Error') { _cVal = _cVal.slice(0,-1); }
+      else { _cVal = '0'; }
+      document.getElementById('calcDisplay').textContent = _cVal;
+      e.preventDefault();
+    }
+  });
+})();
+</script>
 
 <!-- Tabs — separate bar below header, merges into header on scroll -->
 <div class="tabs" id="mainTabs">
@@ -2072,29 +2835,90 @@ header {
   </div>
 
   <!-- EDIT MODAL -->
-  <div id="editDebtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);z-index:300;align-items:center;justify-content:center;">
-    <div style="background:var(--surface);border:1px solid rgba(16,185,129,0.3);border-radius:14px;padding:32px;max-width:480px;width:90%;animation:modalIn 0.2s ease;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);margin-bottom:20px;">&#9999;&#65039; Edit Loan Profile</div>
-      <div class="form-row">
-        <div class="form-group"><label>Staff Name</label><input type="text" id="edit-name"/></div>
-        <div class="form-group"><label>Phone Number</label><input type="tel" id="edit-phone" maxlength="11" inputmode="numeric"/></div>
+  <div id="editDebtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);z-index:300;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+    <div style="background:var(--surface);border:1px solid rgba(16,185,129,0.3);border-radius:18px;max-width:500px;width:100%;margin:auto;animation:modalIn 0.22s ease;max-height:90vh;overflow-y:auto;">
+
+      <!-- Header -->
+      <div style="padding:18px 24px;border-bottom:1px solid var(--surface3);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;border-radius:18px 18px 0 0;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:var(--gold);">&#9999;&#65039; Edit Loan</div>
+        <button onclick="closeEditDebt()" style="background:none;border:none;color:var(--text-muted);font-size:26px;cursor:pointer;line-height:1;">&#215;</button>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-  <label>Date &amp; Time Loan Collected</label>
-  <div style="display:flex;gap:8px;">
-    <input type="date" id="edit-collected" style="flex:1;"/>
-    <input type="time" id="edit-collected-time" style="width:110px;" title="Time loan was collected"/>
-  </div>
-</div>
-        <div class="form-group"><label>Repayment Due Date</label><input type="date" id="edit-due"/></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group full"><label>Notes</label><input type="text" id="edit-notes"/></div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:8px;">
-        <button class="btn btn-ghost" style="flex:1;" onclick="closeEditDebt()">Cancel</button>
-        <button class="btn btn-gold" style="flex:2;" onclick="saveEditDebt()">&#128190; Save Changes</button>
+
+      <div style="padding:22px 24px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Loan ID badge -->
+        <div id="edit-loan-id-badge" style="font-size:11px;color:rgba(16,185,129,0.6);font-weight:600;letter-spacing:0.5px;"></div>
+
+        <!-- Staff dropdown -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Staff Member</label>
+          <select id="edit-staff-select" onchange="onEditDebtStaffSelect()" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:10px;padding:10px 13px;font-size:14px;outline:none;font-family:inherit;">
+            <option value="">— Select Staff —</option>
+          </select>
+        </div>
+
+        <!-- Name + Phone -->
+        <div class="form-row" style="margin:0;">
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Full Name</label>
+            <input type="text" id="edit-name" style="width:100%;box-sizing:border-box;"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Phone Number</label>
+            <input type="tel" id="edit-phone" maxlength="11" inputmode="numeric" style="width:100%;box-sizing:border-box;"/>
+            <div id="edit-phone-error" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">&#9888; Must be exactly 11 digits</div>
+          </div>
+        </div>
+
+        <!-- Loan Amount -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Loan Amount (&#8358;) <span style="font-size:9px;color:rgba(251,191,36,0.6);text-transform:none;letter-spacing:0;">— changing this recalculates balance</span></label>
+          <input type="number" id="edit-amount" min="0" placeholder="0" style="width:100%;box-sizing:border-box;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);"/>
+        </div>
+
+        <!-- Collected Date + Time -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Date &amp; Time Loan Collected</label>
+          <div style="display:flex;gap:8px;">
+            <input type="date" id="edit-collected" style="flex:1;"/>
+            <input type="time" id="edit-collected-time" style="width:116px;" title="Time loan was collected"/>
+          </div>
+        </div>
+
+        <!-- Due Date -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Repayment Due Date</label>
+          <input type="date" id="edit-due" style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <!-- Status -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:8px;">Loan Status</label>
+          <div style="display:flex;gap:10px;">
+            <button type="button" id="edit-status-outstanding" onclick="setEditLoanStatus('Outstanding')"
+              style="flex:1;padding:9px;border-radius:10px;border:1px solid rgba(251,191,36,0.4);background:rgba(251,191,36,0.12);color:#fbbf24;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all 0.15s;">
+              ⏳ Outstanding
+            </button>
+            <button type="button" id="edit-status-paid" onclick="setEditLoanStatus('Paid')"
+              style="flex:1;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all 0.15s;">
+              ✅ Paid / Settled
+            </button>
+          </div>
+          <input type="hidden" id="edit-status" value="Outstanding"/>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Notes / Description</label>
+          <input type="text" id="edit-notes" placeholder="e.g. Salary advance, tools purchase..." style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeEditDebt()">Cancel</button>
+          <button class="btn btn-gold" style="flex:2;" id="editDebtSaveBtn" onclick="saveEditDebt()">&#128190; Save Changes</button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -2103,110 +2927,6 @@ header {
 
 <!-- STAFF REPORTS -->
 <div class="tab-content" id="tab-tracker">
-<style>
-.trk-wrap {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 0 20px 60px;
-}
-.trk-heading {
-  padding: 24px 0 28px;
-  text-align: center;
-}
-.trk-heading-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 30px; font-weight: 700; color: var(--text);
-  margin-bottom: 6px;
-}
-.trk-heading-title em { color: var(--green); font-style: normal; }
-.trk-heading-sub {
-  font-size: 11px; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 2.5px;
-}
-
-/* Mode pills */
-.trk-mode-row {
-  display: flex; gap: 6px;
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-  padding: 5px;
-  margin-bottom: 16px;
-}
-.trk-mode-btn {
-  flex: 1; padding: 9px 12px;
-  border: none; border-radius: 8px;
-  font-size: 13px; font-weight: 600;
-  font-family: inherit; cursor: pointer;
-  transition: all 0.18s;
-  background: transparent;
-  color: var(--text-muted);
-}
-.trk-mode-btn.active {
-  background: rgba(16,185,129,0.15);
-  color: var(--green);
-  box-shadow: 0 2px 10px rgba(16,185,129,0.1);
-}
-.trk-mode-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
-
-/* Search box */
-.trk-search-box {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-.trk-input-row {
-  display: flex; gap: 10px;
-}
-.trk-input-wrap { flex: 1; position: relative; }
-.trk-input-wrap input {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--text); border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 15px; outline: none;
-  font-family: inherit; box-sizing: border-box;
-  transition: border-color 0.15s;
-}
-.trk-input-wrap input:focus { border-color: rgba(16,185,129,0.45); }
-.trk-search-btn {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, var(--gold), var(--gold-light));
-  color: #0a0f0a; border: none; border-radius: 10px;
-  font-size: 14px; font-weight: 700; font-family: inherit;
-  cursor: pointer; white-space: nowrap;
-  transition: opacity 0.15s, transform 0.12s;
-}
-.trk-search-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-.trk-hint {
-  font-size: 11px; color: var(--text-muted);
-  margin-top: 10px; text-align: center;
-  letter-spacing: 0.3px;
-}
-
-.trk-clear-btn {
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--text-muted);
-  border-radius: 10px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-.trk-clear-btn:hover {
-  background: rgba(224,82,82,0.1);
-  border-color: rgba(224,82,82,0.3);
-  color: var(--red);
-}
-
-/* Result area */
-#trackerResult { animation: tabFadeIn 0.2s ease; }
-</style>
 
 <div class="trk-wrap">
 
@@ -2239,87 +2959,12 @@ header {
 </div>
 
 <!-- ══ SALARY TAB ══ -->
-<style>
-.sal-card {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 18px;
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  position: relative;
-  overflow: hidden;
-}
-.sal-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--gold), var(--gold-light));
-  opacity: 0;
-  transition: opacity 0.18s ease;
-}
-.sal-card:hover { transform: translateY(-2px); border-color: rgba(16,185,129,0.3); box-shadow: 0 8px 32px rgba(16,185,129,0.08); }
-.sal-card:hover::before { opacity: 1; }
-.sal-avatar {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.1));
-  border: 1.5px solid rgba(16,185,129,0.25);
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden; flex-shrink: 0; font-size: 20px;
-}
-.sal-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.sal-entry {
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: border-color 0.15s;
-  animation: salSlideIn 0.2s ease;
-}
-.sal-entry:hover { border-color: rgba(16,185,129,0.2); }
-@keyframes salSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.sal-input {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--text);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-  box-sizing: border-box;
-  transition: border-color 0.15s;
-}
-.sal-input:focus { border-color: rgba(16,185,129,0.5); }
-.sal-stat-box {
-  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
-  border: 1px solid rgba(16,185,129,0.15);
-  border-radius: 14px;
-  padding: 18px 16px;
-  text-align: center;
-}
-</style>
 
 <div class="tab-content" id="tab-salary">
 
   <!-- SCREEN 1: Staff Grid -->
   <div id="salary-main-screen">
+  <div class="container">
 
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
@@ -2346,10 +2991,13 @@ header {
 
     <!-- Staff grid -->
     <div id="salaryStaffGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;"></div>
-  </div>
+
+  </div><!-- /.container -->
+  </div><!-- /#salary-main-screen -->
 
   <!-- SCREEN 2: Salary Profile -->
   <div id="salary-profile-screen" style="display:none;">
+  <div class="container" style="max-width:680px;">
 
     <!-- Hero header -->
     <div style="background:linear-gradient(135deg,rgba(16,185,129,0.08) 0%,rgba(16,185,129,0.02) 100%);border:1px solid rgba(16,185,129,0.12);border-radius:20px;padding:22px 20px;margin-bottom:16px;position:relative;overflow:hidden;">
@@ -2463,31 +3111,10 @@ header {
       <div id="sp-history"></div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /.container -->
+  </div><!-- /#salary-profile-screen -->
+</div><!-- /#tab-salary -->
 
-<style>
-.stype-pill {
-  padding: 6px 14px;
-  border-radius: 50px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: var(--surface2);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 0.15s;
-}
-.stype-pill:hover { border-color: rgba(16,185,129,0.3); color: var(--text); }
-.active-pill { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: var(--green); }
-@keyframes salShake {
-  0%,100% { transform: translateX(0); }
-  20%,60%  { transform: translateX(-5px); }
-  40%,80%  { transform: translateX(5px); }
-}
-.sal-shake { animation: salShake 0.35s ease; border-color: var(--red) !important; }
-</style>
 
 <div class="tab-content" id="tab-reports">
 
@@ -2719,211 +3346,6 @@ header {
 
 <!-- ADMIN -->
 <div class="tab-content" id="tab-admin">
-<style>
-/* ══════════════════════════════════════
-   INCLINEWORKS — ELEGANT PRICE MANAGER
-   ══════════════════════════════════════ */
-
-/* Shell: price list left, sticky sidebar right */
-.pa-shell {
-  display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 24px;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 0 20px 80px;
-  align-items: start;
-}
-
-/* ── LEFT column ── */
-.pa-left { min-width: 0; }
-
-/* Brand header */
-.pa-brand {
-  display: flex; align-items: center; gap: 14px;
-  padding: 20px 0 18px;
-  border-bottom: 1px solid rgba(16,185,129,0.12);
-  margin-bottom: 4px;
-}
-.pa-brand-logo {
-  width: 46px; height: 46px; border-radius: 12px;
-  overflow: hidden; border: 1px solid rgba(16,185,129,0.22);
-  flex-shrink: 0; background: rgba(16,185,129,0.06);
-}
-.pa-brand-logo img { width:100%; height:100%; object-fit:contain; }
-.pa-brand-name {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 24px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.1;
-}
-.pa-brand-name em { color: var(--green); font-style: normal; }
-.pa-brand-sub {
-  font-size: 9px; color: var(--text-muted);
-  letter-spacing: 2.5px; text-transform: uppercase; margin-top: 3px;
-}
-.pa-brand-meta {
-  font-size: 10px; color: rgba(255,255,255,0.13);
-  text-align: right; line-height: 1.8; letter-spacing: 0.5px;
-}
-
-/* Table */
-.pa-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-
-/* Category header */
-.pa-cat-row td {
-  padding: 22px 4px 10px;
-  border-bottom: 1px solid rgba(16,185,129,0.15);
-}
-.pa-cat-inner { display: flex; align-items: center; gap: 10px; }
-.pa-cat-icon {
-  width: 30px; height: 30px;
-  background: rgba(16,185,129,0.08);
-  border: 1px solid rgba(16,185,129,0.18);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; flex-shrink: 0;
-}
-.pa-cat-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 19px; font-weight: 700; color: var(--text); flex: 1;
-}
-.pa-cat-badge {
-  font-size: 10px; color: rgba(16,185,129,0.55);
-  background: rgba(16,185,129,0.07);
-  border: 1px solid rgba(16,185,129,0.13);
-  border-radius: 20px; padding: 3px 12px; font-weight: 600;
-}
-
-/* Service rows */
-.pa-svc-row { transition: background 0.12s; }
-.pa-svc-row:hover { background: rgba(16,185,129,0.04); }
-.pa-svc-row.pa-alt { background: rgba(255,255,255,0.013); }
-.pa-svc-row.pa-alt:hover { background: rgba(16,185,129,0.05); }
-.pa-svc-row td {
-  padding: 11px 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
-  vertical-align: middle;
-}
-.pa-svc-name {
-  font-size: 15px; color: rgba(240,234,214,0.82);
-  font-weight: 400;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding-right: 12px;
-}
-.pa-svc-badge {
-  display: inline-block; font-size: 8px;
-  background: rgba(201,168,76,0.15); color: var(--gold);
-  border-radius: 4px; padding: 1px 6px; margin-left: 8px;
-  font-weight: 700; letter-spacing: 0.5px; vertical-align: middle;
-}
-.pa-price-cell { text-align: right; white-space: nowrap; width: 110px; }
-.pa-price-inner { display: inline-flex; align-items: center; gap: 5px; }
-.pa-naira { font-size: 12px; font-weight: 700; color: rgba(16,185,129,0.5); }
-.pa-inp {
-  width: 78px;
-  background: rgba(16,185,129,0.06);
-  border: 1px solid rgba(16,185,129,0.15);
-  color: var(--green); border-radius: 7px;
-  padding: 6px 9px; font-size: 15px; font-weight: 700;
-  font-family: 'Cormorant Garamond', serif;
-  text-align: right; outline: none;
-  transition: border-color 0.15s, background 0.15s;
-}
-.pa-inp:focus { border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.1); }
-.pa-del-cell { width: 26px; text-align: center; }
-.pa-del {
-  background: none; border: none; color: rgba(224,82,82,0.3);
-  cursor: pointer; font-size: 11px; padding: 4px; border-radius: 4px;
-  transition: color 0.15s;
-}
-.pa-del:hover { color: var(--red); }
-
-/* ── RIGHT: Sticky sidebar ── */
-.pa-right {
-  position: sticky;
-  top: 130px; /* below header+tabs */
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.pa-sidebar-card {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  padding: 16px;
-}
-.pa-sidebar-label {
-  font-size: 9px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 2px; color: var(--text-muted);
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 7px;
-}
-.pa-sidebar-label::before {
-  content: ''; width: 3px; height: 12px;
-  background: linear-gradient(180deg, var(--gold), var(--gold-light));
-  border-radius: 2px; flex-shrink: 0;
-}
-
-/* Search */
-.pa-search { position: relative; }
-.pa-search input {
-  width: 100%; background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: var(--text); border-radius: 8px;
-  padding: 9px 12px 9px 34px;
-  font-size: 13px; outline: none; box-sizing: border-box;
-  transition: border-color 0.15s; font-family: inherit;
-}
-.pa-search input:focus { border-color: rgba(16,185,129,0.4); }
-.pa-search-icon {
-  position: absolute; left: 11px; top: 50%;
-  transform: translateY(-50%); color: var(--text-muted);
-  font-size: 13px; pointer-events: none;
-}
-
-/* Save */
-.pa-save-btn {
-  width: 100%; padding: 11px;
-  background: linear-gradient(135deg, var(--gold), var(--gold-light));
-  color: #0a0f0a; border: none; border-radius: 9px;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  cursor: pointer; transition: opacity 0.15s, transform 0.12s;
-}
-.pa-save-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-.pa-status {
-  font-size: 11px; color: var(--text-muted);
-  text-align: center; margin-top: 8px;
-}
-
-/* Add form */
-.pa-add-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 9px; }
-.pa-add-field label {
-  font-size: 9px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1.5px; color: rgba(16,185,129,0.5);
-}
-.pa-add-field input, .pa-add-field select {
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: var(--text); border-radius: 8px;
-  padding: 8px 10px; font-size: 13px; outline: none;
-  font-family: inherit; transition: border-color 0.15s;
-}
-.pa-add-field input:focus, .pa-add-field select:focus { border-color: rgba(16,185,129,0.4); }
-.pa-add-btn {
-  width: 100%; padding: 10px;
-  background: rgba(16,185,129,0.1);
-  border: 1px solid rgba(16,185,129,0.25);
-  color: var(--green); border-radius: 8px;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  cursor: pointer; transition: all 0.15s;
-}
-.pa-add-btn:hover { background: rgba(16,185,129,0.2); border-color: rgba(16,185,129,0.45); }
-
-/* Responsive */
-@media (max-width: 680px) {
-  .pa-shell { grid-template-columns: 1fr; }
-  .pa-right { position: static; }
-}
-</style>
 
 <div class="pa-shell">
 
@@ -3069,21 +3491,31 @@ let orderStatus = "Pending";
 // ══ ADMIN RELOAD ══
 // ── Load all data from Supabase (global so reload can call it) ──
 async function refreshStaffFromSupabase() {
-  const list = await sbGetStaff();
-  // Always update cache — even empty list clears stale ghost profiles
-  const normalized = (list || []).map(s => ({
-    id: s.id, name: s.name, staffId: s.staff_id,
-    phone: s.phone, position: s.position, dept: s.department,
-    gender: s.gender || '',
-    bankName: s.bank_name, accountNumber: s.account_number,
-    accountName: s.account_name, photo: s.photo, addedAt: s.created_at,
-    dob: s.date_of_birth || '',
-    age: s.age || '',
-    residence: s.residence || '',
-    state: s.state_of_origin || '',
-    lga: s.lga || '',
-    startDate: s.start_date || ''
-  }));
+  let list;
+  try {
+    list = await sbGetStaff();
+  } catch(e) {
+    // Network / Supabase error — keep existing local cache untouched
+    console.warn('Staff fetch failed, keeping cache:', e.message);
+    return;
+  }
+  // Only update cache when Supabase actually returned records.
+  // An empty result on a site with staff means something went wrong — don't wipe.
+  if (!list || list.length === 0) return;
+
+  const normalized = list.map(s => {
+    if (s.photo) _photoCache[String(s.id)] = s.photo;  // photos live in memory
+    return {
+      id: s.id, name: s.name, staffId: s.staff_id,
+      phone: s.phone, position: s.position, dept: s.department,
+      gender: s.gender || '',
+      bankName: s.bank_name, accountNumber: s.account_number,
+      accountName: s.account_name, addedAt: s.created_at,
+      dob: s.date_of_birth || '', age: s.age || '',
+      residence: s.residence || '', state: s.state_of_origin || '',
+      lga: s.lga || '', startDate: s.start_date || ''
+    };
+  });
   saveStaffProfiles(normalized);
 }
 
@@ -3104,24 +3536,34 @@ async function initFromSupabase() {
       localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
     }
 
-    // Clean up localStorage: remove any orders belonging to staff no longer in the system
+    // Clean up orders for deleted staff — ONLY if we have confirmed staff data
     const currentStaff = getStaffProfiles();
-    const currentNames = new Set(currentStaff.map(s => s.name.toLowerCase()));
-    const currentIds   = new Set(currentStaff.map(s => s.staffId).filter(Boolean));
-    const cleanedOrders = getOrders().filter(o =>
-      currentNames.has((o.clientName || '').toLowerCase()) ||
-      (o.staffId && currentIds.has(o.staffId))
-    );
-    localStorage.setItem('incline_orders', JSON.stringify(cleanedOrders));
+    if (currentStaff.length > 0) {
+      const currentNames = new Set(currentStaff.map(s => s.name.toLowerCase()));
+      const currentIds   = new Set(currentStaff.map(s => s.staffId).filter(Boolean));
+      const allOrds = getOrders();
+      const cleanedOrders = allOrds.filter(o =>
+        currentNames.has((o.clientName || '').toLowerCase()) ||
+        (o.staffId && currentIds.has(o.staffId))
+      );
+      // Safety: only apply if we're not wiping everything (network glitch guard)
+      if (cleanedOrders.length > 0 || allOrds.length === 0) {
+        localStorage.setItem('incline_orders', JSON.stringify(cleanedOrders));
+      }
+    }
   } catch(e) {
     console.error('Supabase init failed, using localStorage cache:', e);
   } finally {
+    // Mark all data as freshly fetched so tab switches don't re-fetch immediately
+    var _now = Date.now();
+    _lastFetch.staff = _now; _lastFetch.orders = _now;
+    _lastFetch.loans = _now; _lastFetch.prices = _now;
     renderAdminPanel();
     renderOrdersTable();
-    renderAdminStaffList();
+    renderAdminStaffList(false);
     if (typeof populateLoanStaffDropdown === 'function') populateLoanStaffDropdown();
     updateAlumniBadge();
-    _appReady = true; // ← unlock the reload button now that init is complete
+    _appReady = true;
   }
 }
 
@@ -3149,15 +3591,20 @@ async function reloadAdminData() {
       localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
     }
 
-    // Clean up orphaned orders from deleted staff
+    // Clean up orphaned orders — only when staff data is confirmed valid
     const currentStaff = getStaffProfiles();
-    const currentNames = new Set(currentStaff.map(s => s.name.toLowerCase()));
-    const currentIds   = new Set(currentStaff.map(s => s.staffId).filter(Boolean));
-    const cleanedOrders = getOrders().filter(o =>
-      currentNames.has((o.clientName || '').toLowerCase()) ||
-      (o.staffId && currentIds.has(o.staffId))
-    );
-    localStorage.setItem('incline_orders', JSON.stringify(cleanedOrders));
+    if (currentStaff.length > 0) {
+      const currentNames = new Set(currentStaff.map(s => s.name.toLowerCase()));
+      const currentIds   = new Set(currentStaff.map(s => s.staffId).filter(Boolean));
+      const allOrds2 = getOrders();
+      const cleanedOrders = allOrds2.filter(o =>
+        currentNames.has((o.clientName || '').toLowerCase()) ||
+        (o.staffId && currentIds.has(o.staffId))
+      );
+      if (cleanedOrders.length > 0 || allOrds2.length === 0) {
+        localStorage.setItem('incline_orders', JSON.stringify(cleanedOrders));
+      }
+    }
 
     // Re-render the active tab
     const activeTab = $('.tab.active').data('tab');
@@ -3168,6 +3615,9 @@ async function reloadAdminData() {
     else if (activeTab === 'admin')       renderAdminPanel();
 
     updateAlumniBadge();
+    var _now2 = Date.now();
+    _lastFetch.staff = _now2; _lastFetch.orders = _now2;
+    _lastFetch.loans = _now2; _lastFetch.prices = _now2; _lastFetch.salaries = _now2;
     showToast('↻ Refreshed!');
   } catch(e) {
     console.error('Reload error:', e);
@@ -3177,10 +3627,16 @@ async function reloadAdminData() {
   }
 }
 
-// Auto-sync admin data every 90 seconds
+// Auto-sync every 90s with in-flight guard to prevent request pileup
+var _autoSyncBusy = false;
 setInterval(function() {
-  if (!document.hidden && $('.tab.active').data('tab') === 'orders') {
-    refreshOrdersFromSupabase().then(function(){ renderOrdersTable(); });
+  if (_autoSyncBusy || document.hidden) return;
+  if ($('.tab.active').data('tab') === 'orders') {
+    _autoSyncBusy = true;
+    refreshOrdersFromSupabase()
+      .then(function(){ renderOrdersTable(); })
+      .catch(function(){})
+      .finally(function(){ _autoSyncBusy = false; });
   }
 }, 90000);
 
@@ -3195,7 +3651,10 @@ function setupRealtimeSync() {
   }
 
   // Helper: flash the logo and re-render the active tab silently
+  var _rtBusy = false;
   async function onRemoteChange(table) {
+    if (_rtBusy) return;
+    _rtBusy = true;
     try {
       // Refresh only the changed table
       if (table === 'orders') {
@@ -3230,6 +3689,8 @@ function setupRealtimeSync() {
       }
     } catch(e) {
       console.warn('Realtime re-render error:', e);
+    } finally {
+      _rtBusy = false;
     }
   }
 
@@ -3303,7 +3764,7 @@ $(function(){
             account_number: o.accountNumber, account_name: o.accountName,
             notes: o.notes || ''
           };
-          await supa.from('orders').insert([row]).select().catch(() => {});
+          await _sbFetch('orders', { method: 'POST', body: row, prefer: 'return=minimal' }).catch(() => {});
         }
         console.log('Orders migrated:', localOrders.length);
       }
@@ -3328,7 +3789,21 @@ $(function(){
     }
   }
 
-  migrateLocalToSupabase().then(() => initFromSupabase()).then(() => setupRealtimeSync());
+  migrateLocalToSupabase().then(() => initFromSupabase()).then(() => {
+    setupRealtimeSync();
+    // Safety: if tab-orders shows empty but orders exist, auto-recover
+    setTimeout(function() {
+      const orders = getOrders();
+      const staff  = getStaffProfiles();
+      if (orders.length > 0 && staff.length > 0) {
+        const tbl = document.getElementById('ordersTable');
+        if (tbl && (tbl.innerHTML.includes('No task found') || tbl.innerHTML.trim() === '')) {
+          console.warn('[Incline] Orders exist but table is empty — forcing re-render without staff filter');
+          renderOrdersTableUnfiltered();
+        }
+      }
+    }, 3000);
+  });
 
   $('.tab').on('click', function(){ switchTab($(this).data('tab')); });
   $('#statusRow').on('click', '.status-btn', function(){
@@ -3642,10 +4117,10 @@ async function trackerLoanDelete(id) {
   );
 
   // Sync to Supabase — try both string and numeric id
-  supa.from('loans').delete().eq('id', String(debt.id))
+  _sbFetch('loans?id=eq.' + String(debt.id), { method: 'DELETE', prefer: 'return=minimal' })
     .then(function(res) {
       if (res.error) {
-        return supa.from('loans').delete().eq('id', Number(debt.id));
+        return _sbFetch('loans?id=eq.' + Number(debt.id), { method: 'DELETE', prefer: 'return=minimal' });
       }
     })
     .catch(function(e) { console.error('Loan delete sync:', e); });
@@ -3785,7 +4260,7 @@ function trackerUpdateStatus(newStatus) {
   if (!order) return;
   order.status = newStatus;
   localStorage.setItem('incline_orders', JSON.stringify(orders));
-  supa.from('orders').update({ status: newStatus }).eq('id', String(id)).catch(e => console.error('Status sync:', e));
+  _sbFetch('orders?id=eq.' + String(id), { method: 'PATCH', body: { status: newStatus }, prefer: 'return=minimal' }).catch(e => console.error('Status sync:', e));
   renderOrdersTable();
   showToast('✅ Status updated to ' + newStatus);
   trackReceipt();
@@ -3804,7 +4279,7 @@ async function trackerDelete() {
   });
   if (!_dod) return;
   localStorage.setItem('incline_orders', JSON.stringify(orders.filter(o => String(o.id) !== String(id))));
-  supa.from('orders').delete().eq('id', String(id)).catch(e => console.error('Delete sync:', e));
+  _sbFetch('orders?id=eq.' + String(id), { method: 'DELETE', prefer: 'return=minimal' }).catch(e => console.error('Delete sync:', e));
   renderOrdersTable();
   window._trkId = null;
   $('#trackerResult').html('');
@@ -3856,17 +4331,119 @@ function reprintReceipt(orderId) {
   window.print();
 }
 
+// ── Cache timestamps — track when each data type was last fetched from Supabase ──
+var _lastFetch = { staff: 0, orders: 0, loans: 0, salaries: 0, prices: 0 };
+var _CACHE_TTL = 3 * 60 * 1000; // 3 minutes — re-fetch at most every 3 min
+
+function _cacheStale(key) {
+  return (Date.now() - (_lastFetch[key] || 0)) > _CACHE_TTL;
+}
+
 function switchTab(tab) {
   $('.tab').removeClass('active'); $(`.tab[data-tab="${tab}"]`).addClass('active');
   $('.tab-content').removeClass('active'); $(`#tab-${tab}`).addClass('active');
-  // Always jump to top instantly when switching tabs
+
+  // ── Always reset ALL sub-screens to their default (main) view ──
+  $('#order-list-screen').show();
+  $('#staff-orders-screen').hide();
+  $('#order-profile-screen').hide();
+  $('#os-main').show();
+  $('#os-profile').hide();
+  $('#staff-report-page').hide();
+  if (document.getElementById('salary-main-screen'))
+    document.getElementById('salary-main-screen').style.display = 'block';
+  if (document.getElementById('salary-profile-screen'))
+    document.getElementById('salary-profile-screen').style.display = 'none';
+
   window.scrollTo({ top: 0, behavior: 'instant' });
-  if (tab === 'orders') renderOrdersTable();
-  if (tab === 'outstanding') { renderOutstandingTable(); updateAlumniBadge(); populateLoanStaffDropdown(); }
-  if (tab === 'reports') renderStaffCards();
-  if (tab === 'staff') renderAdminStaffList();
-  if (tab === 'salary') renderSalaryTab();
+
+  // ── INSTANT render from cache, then silently refresh if stale ──
+  if (tab === 'orders') {
+    renderOrdersTable(); // always instant from localStorage
+    if (_cacheStale('orders')) {
+      refreshOrdersFromSupabase().then(function(){ _lastFetch.orders = Date.now(); renderOrdersTable(); }).catch(function(){});
+    }
+  }
+  if (tab === 'outstanding') {
+    renderOutstandingTable(); updateAlumniBadge(); populateLoanStaffDropdown();
+    if (_cacheStale('loans')) {
+      refreshLoansFromSupabase().then(function(){ _lastFetch.loans = Date.now(); renderOutstandingTable(); updateAlumniBadge(); }).catch(function(){});
+    }
+  }
+  if (tab === 'reports') {
+    renderStaffCards(); // renders from localStorage cache instantly
+    if (_cacheStale('orders') || _cacheStale('staff')) {
+      Promise.all([
+        _cacheStale('staff') ? refreshStaffFromSupabase().then(function(){ _lastFetch.staff = Date.now(); }) : Promise.resolve(),
+        _cacheStale('orders') ? refreshOrdersFromSupabase().then(function(){ _lastFetch.orders = Date.now(); }) : Promise.resolve()
+      ]).then(function(){ renderStaffCards(); }).catch(function(){});
+    }
+  }
+  if (tab === 'staff') {
+    // Render instantly from cache first, then refresh if stale
+    _renderAdminStaffListFromCache();
+    if (_cacheStale('staff')) {
+      sbGetStaff().then(function(list) {
+        if (!list || !list.length) return;
+        list.forEach(function(s){ if (s.photo) _photoCache[String(s.id)] = s.photo; });
+        var staffList = list.map(function(s){ return { id:s.id, name:s.name, staffId:s.staff_id, phone:s.phone, position:s.position, dept:s.department, gender:s.gender||'', bankName:s.bank_name, accountNumber:s.account_number, accountName:s.account_name, addedAt:s.created_at, dob:s.date_of_birth||'', age:s.age||'', residence:s.residence||'', state:s.state_of_origin||'', lga:s.lga||'', startDate:s.start_date||'', bio:s.bio||'' }; });
+        saveStaffProfiles(staffList);
+        _lastFetch.staff = Date.now();
+        renderAdminStaffList();
+      }).catch(function(){});
+    }
+  }
+  if (tab === 'salary') {
+    _renderSalaryFromCache(); // instant
+    if (_cacheStale('salaries') || _cacheStale('staff')) {
+      renderSalaryTab(); // background refresh
+    }
+  }
   if (tab === 'analysis') renderAnalysis();
+}
+
+// Instant render of staff list from localStorage/memory cache — no network
+function _renderAdminStaffListFromCache() {
+  var cached = getStaffProfiles();
+  if (!cached.length) { renderAdminStaffList(); return; } // no cache — must fetch
+  var $el = $('#adminStaffList');
+  var sorted = cached.slice().sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var allOrders = getOrders();
+  var html = '';
+  sorted.forEach(function(s) {
+    var initials = (s.name||'?').split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+    var photo = getStaffPhoto(String(s.id));
+    var avatarHtml = photo ? '<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>' : initials;
+    var orderCount = allOrders.filter(function(o){ return (o.staff_id||o.staffId) === s.staffId; }).length;
+    html += '<div class="admin-staff-row"><div class="admin-staff-thumb">'+avatarHtml+'</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:var(--text);">'+s.name+'</div><div style="font-size:11px;color:var(--text-muted);">'+(s.staffId||'—')+' · '+(s.position||'—')+(s.dept?' · '+s.dept:'')+(s.gender?' · '+(s.gender==='Male'?'👨':'👩')+' '+s.gender:'')+'</div></div><div style="font-size:11px;color:var(--text-muted);text-align:right;margin-right:12px;"><div style="color:var(--gold);font-weight:600;">'+orderCount+' orders</div><div>'+(s.phone||'No phone')+'</div></div><div style="display:flex;gap:6px;align-items:center;"><button class="tbl-btn" onclick="openEditStaff(\''+s.id+'\')" style="color:var(--gold);border-color:rgba(16,185,129,0.3);">✏️ Edit</button><button class="tbl-btn danger" onclick="deleteStaff(\''+s.id+'\')">🗑</button></div></div>'+(s.startDate?'<div style="margin-top:4px;margin-left:52px;font-size:11px;color:rgba(16,185,129,0.65);display:flex;align-items:center;gap:5px;"><span style="font-size:13px;">📅</span> Started: <strong style="color:rgba(16,185,129,0.9);">'+new Date(s.startDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':'');
+  });
+  $el.html(html || '<div class="empty-state" style="padding:40px 0;"><div class="icon">👥</div><p>No staff added yet.</p></div>');
+  $('#staffCountBadge').text(sorted.length + ' member' + (sorted.length !== 1 ? 's' : ''));
+}
+
+// Instant render of salary grid from localStorage/memory cache — no network
+function _renderSalaryFromCache() {
+  var staff = getStaffProfiles();
+  if (!staff.length) return;
+  var grid = document.getElementById('salaryStaffGrid');
+  var strip = document.getElementById('salary-summary-strip');
+  if (!grid) return;
+  var allSalaries = _allSalariesCache || [];
+  var search = (document.getElementById('salarySearch')||{}).value || '';
+  search = search.toLowerCase();
+  var filtered = staff.filter(function(s){ return !search || (s.name||'').toLowerCase().includes(search) || (s.staffId||'').toLowerCase().includes(search); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var grandTotal = allSalaries.reduce(function(t,e){ return t+(e.amount||0); },0);
+  var thisMonth  = allSalaries.filter(function(e){ return e.date_paid && e.date_paid.slice(0,7)===new Date().toISOString().slice(0,7); });
+  var monthTotal = thisMonth.reduce(function(t,e){ return t+(e.amount||0); },0);
+  if (strip) strip.innerHTML = '<div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">All-Time Paid</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--green);">₦'+grandTotal.toLocaleString()+'</div></div><div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">This Month</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--gold);">₦'+monthTotal.toLocaleString()+'</div></div><div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">Staff Count</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--text);">'+staff.length+'</div></div>';
+  grid.innerHTML = filtered.map(function(s){
+    var entries = allSalaries.filter(function(e){ return e.staff_id === s.staffId; });
+    var totalPaid = entries.reduce(function(sum,e){ return sum+(e.amount||0); },0);
+    var last = entries[0]; var lastDate = last ? last.date_paid : null;
+    var photoSrc = getStaffPhoto(String(s.id)) || s.photo || null;
+    var avatarInner = photoSrc ? '<img src="'+photoSrc+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>' : '<span style="font-size:15px;font-weight:700;color:var(--gold);font-family:\'Cormorant Garamond\',serif;">'+(s.name||'?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase()+'</span>';
+    return '<div class="sal-card" onclick="openSalaryProfile(\''+s.staffId+'\')"><div style="display:flex;align-items:center;gap:13px;margin-bottom:14px;"><div class="sal-avatar">'+avatarInner+'</div><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.name||'—')+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+(s.staffId||'')+' · '+(s.position||'—')+'</div></div><div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--green);white-space:nowrap;">'+entries.length+' paid</div></div><div style="height:1px;background:rgba(255,255,255,0.05);margin-bottom:14px;"></div><div style="display:flex;justify-content:space-between;align-items:flex-end;"><div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">Total Paid</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--green);">₦'+totalPaid.toLocaleString()+'</div></div><div style="text-align:right;"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">Last Payment</div><div style="font-size:12px;color:'+(lastDate?'var(--text)':'var(--text-muted)')+';">'+(lastDate||'None yet')+'</div></div></div></div>';
+  }).join('');
 }
 
 function addCustomService() {
@@ -3898,6 +4475,8 @@ function addCustomService() {
 }
 
 function renderAdminPanel() {
+  // Always fall back to defaults if SERVICES is empty
+  if (!SERVICES || !SERVICES.length) SERVICES = getPrices();
   const $list = $('#adminPriceList').empty();
   const cats = [...new Set(SERVICES.map(s => s.cat))];
 
@@ -4261,8 +4840,7 @@ async function doUpdateOrder(orderId, data) {
   };
 
   try {
-    const { error } = await supa.from('orders').update(supaUpdate).eq('id', String(orderId));
-    if (error) throw error;
+    await _sbFetch('orders?id=eq.' + String(orderId), { method: 'PATCH', body: supaUpdate, prefer: 'return=minimal' });
     showToast('✅ Task updated successfully!');
   } catch(e) {
     console.error('Update sync failed:', e);
@@ -4386,8 +4964,10 @@ function getOrders() {
 }
 
 async function refreshOrdersFromSupabase() {
-  const { data, error } = await supa.from('orders').select('*').order('created_at', { ascending: false });
-  if (error || !data) return;
+  let _ordData, _ordErr;
+  try { _ordData = await _sbFetch('orders?select=*&order=created_at.desc'); } catch(e) { _ordErr = e; }
+  if (_ordErr || !_ordData) return;
+  const data = _ordData;
   const normalized = data.map(o => ({
     id: o.id,
     clientName: o.client_name || o.staff_name || '',
@@ -4415,6 +4995,50 @@ async function refreshOrdersFromSupabase() {
 let _sosStaffName = null;
 let _sosAllOrders = [];
 
+// Fallback: render ALL orders with no staff-name filter (recovery mode)
+function renderOrdersTableUnfiltered() {
+  const orders = getOrders();
+  if (!orders.length) return;
+  const groups = {};
+  orders.forEach(o => {
+    const name = (o.clientName || 'Unknown').trim();
+    if (!groups[name]) groups[name] = [];
+    groups[name].push(o);
+  });
+  const staffProfiles = getStaffProfiles();
+  const sortedNames = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
+  let html = `<div class="staff-cards-grid">`;
+  sortedNames.forEach(name => {
+    const staffOrders = groups[name];
+    const profile = staffProfiles.find(s => (s.name||'').toLowerCase().trim() === name.toLowerCase().trim());
+    const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const _rp = profile ? (getStaffPhoto(profile.id) || null) : null;
+    const avatarContent = _rp
+      ? `<img src="${_rp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+      : initials;
+    const totalRevenue = staffOrders.reduce((s,o) => s+(o.subtotal||0), 0);
+    const totalBalance = staffOrders.reduce((s,o) => s+(o.balance||0), 0);
+    const pending = staffOrders.filter(o => o.status==='Pending'||o.status==='In Progress').length;
+    html += `
+      <div class="staff-id-card" onclick="openStaffOrdersScreen('${name.replace(/'/g,"\'")}')">
+        <div class="staff-card-name-label">INCLINEWORKS INT'L</div>
+        <div class="staff-card-avatar-wrap"><div class="staff-card-avatar">${avatarContent}</div></div>
+        <div class="staff-card-name-label">STAFF</div>
+        <div class="staff-card-name-banner">${name}</div>
+        ${profile && profile.position ? `<div class="staff-card-row"><span>Position</span><span>${profile.position}</span></div>` : ''}
+        ${profile && profile.staffId  ? `<div class="staff-card-row"><span>ID</span><span>${profile.staffId}</span></div>` : ''}
+        ${totalBalance > 0 ? `<div class="staff-card-row"><span>Outstanding</span><span style="color:var(--red);">&#8358;${totalBalance.toLocaleString()}</span></div>` : '<div class="staff-card-row"><span>Balance</span><span style="color:var(--green);">All Paid</span></div>'}
+        ${pending > 0 ? `<div class="staff-card-row"><span>Active Jobs</span><span style="color:#fbbf24;">${pending}</span></div>` : ''}
+        <div class="staff-card-stats">
+          <div class="staff-card-stat"><div class="staff-card-stat-val">${staffOrders.length}</div><div class="staff-card-stat-lbl">Task</div></div>
+          <div class="staff-card-stat"><div class="staff-card-stat-val" style="font-size:13px;">&#8358;${totalRevenue.toLocaleString()}</div><div class="staff-card-stat-lbl">Revenue</div></div>
+        </div>
+      </div>`;
+  });
+  html += `</div>`;
+  $('#ordersTable').html(html);
+}
+
 function renderOrdersTable() {
   const orders = getOrders();
   const search = $('#filterSearch').val().toLowerCase();
@@ -4425,14 +5049,20 @@ function renderOrdersTable() {
   const activeNames = new Set(activeStaff.map(s => s.name.toLowerCase()));
   const activeIds   = new Set(activeStaff.map(s => s.staffId).filter(Boolean));
 
-  // group by staff name, apply search/filter — skip deleted staff
+  // group by staff name, apply search/filter
   const groups = {};
   orders.forEach(o => {
-    const name = o.clientName || 'Unknown';
-    // Skip if staff no longer exists
-    const staffMatch = activeNames.has(name.toLowerCase()) ||
-                       (o.staffId && activeIds.has(o.staffId));
-    if (!staffMatch) return;
+    const name = (o.clientName || 'Unknown').trim();
+    // Only hard-filter by registered staff when staff list is loaded AND has > 0 members
+    if (activeStaff.length > 0) {
+      const nameTrim = name.toLowerCase().trim();
+      // Fuzzy match: check if any registered staff name contains this name or vice versa
+      const staffMatch =
+        activeNames.has(nameTrim) ||
+        (o.staffId && activeIds.has(o.staffId)) ||
+        [...activeNames].some(n => n.includes(nameTrim) || nameTrim.includes(n));
+      if (!staffMatch) return;
+    }
     if (search && !name.toLowerCase().includes(search)) return;
     if (!groups[name]) groups[name] = [];
     if (!sf || o.status === sf) groups[name].push(o);
@@ -4454,8 +5084,9 @@ function renderOrdersTable() {
     const staffOrders = groups[name];
     const profile     = staffProfiles.find(s => s.name.toLowerCase() === name.toLowerCase());
     const initials    = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const avatarContent = (profile && profile.photo)
-      ? `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+    const _rp = profile ? (getStaffPhoto(profile.id) || profile.photo) : null;
+    const avatarContent = _rp
+      ? `<img src="${_rp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
       : initials;
 
     const totalRevenue  = staffOrders.reduce((s,o) => s + (o.subtotal||0), 0);
@@ -4498,17 +5129,19 @@ function openStaffOrdersScreen(name) {
   const allOrders = getOrders();
   const staffProfiles = getStaffProfiles();
   const profile = staffProfiles.find(s => s.name.toLowerCase() === name.toLowerCase());
-  _sosAllOrders = allOrders.filter(o =>
-    o.clientName === name ||
-    o.clientName.toLowerCase() === name.toLowerCase() ||
-    (profile && o.staffId && o.staffId === profile.staffId)
-  ).sort((a,b) => new Date(b.date||b.orderDate||0) - new Date(a.date||a.orderDate||0));
+  const _fn = name.toLowerCase().trim();
+  _sosAllOrders = allOrders.filter(o => {
+    if (profile && o.staffId && o.staffId === profile.staffId) return true;
+    const _on = (o.clientName || '').toLowerCase().trim();
+    return _on === _fn || _on.includes(_fn) || _fn.includes(_on);
+  }).sort((a,b) => new Date(b.date||b.orderDate||0) - new Date(a.date||a.orderDate||0));
   const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
   // Set avatar
   const av = document.getElementById('sos-avatar');
-  if (profile && profile.photo) {
-    av.innerHTML = `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+  const _sp2 = profile ? (getStaffPhoto(profile.id) || profile.photo) : null;
+  if (_sp2) {
+    av.innerHTML = `<img src="${_sp2}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
   } else {
     av.textContent = initials;
   }
@@ -4922,7 +5555,7 @@ async function deleteOrder(id) {
   if (!_do) return;
 
   // 1. Remove locally first so the UI feels instant
-  localStorage.setItem('incline_orders', JSON.stringify(getOrders().filter(o => o.id !== id)));
+  localStorage.setItem('incline_orders', JSON.stringify(getOrders().filter(o => String(o.id) !== String(id))));
   // Stay on the task list — don't jump to a different tab
   $('#order-profile-screen').hide();
   $('#order-list-screen').show();
@@ -4932,9 +5565,10 @@ async function deleteOrder(id) {
 
   // 2. Delete from Supabase so it does not come back on next refresh
   try {
-    const { error } = await supa.from('orders').delete().eq('id', id);
-    if (error) {
-      showToast('⚠️ Delete failed on server: ' + error.message);
+    let _delErr; 
+    try { await _sbFetch('orders?id=eq.' + id, { method: 'DELETE', prefer: 'return=minimal' }); } catch(e) { _delErr = e; }
+    if (_delErr) {
+      showToast('⚠️ Delete failed on server: ' + _delErr.message);
       // Re-pull from Supabase so local cache stays in sync
       await refreshOrdersFromSupabase();
       renderOrdersTable();
@@ -4967,7 +5601,7 @@ function checkCustomerDebt() {
   
   orders.forEach(o => {
     if (o.balance > 0 && o.status !== 'Cancelled') {
-      const matchName = name && o.clientName.toLowerCase().includes(name);
+      const matchName = name && o.clientName.toLowerCase() === name;
       const matchPhone = phone && o.clientPhone === phone;
       if (matchName || matchPhone) {
         totalDebt += o.balance;
@@ -4977,7 +5611,7 @@ function checkCustomerDebt() {
   
   manualDebts.forEach(d => {
     if (d.balance > 0) {
-      const matchName = name && d.clientName.toLowerCase().includes(name);
+      const matchName = name && d.clientName.toLowerCase() === name;
       const matchPhone = phone && d.clientPhone === phone;
       if (matchName || matchPhone) {
         totalDebt += d.balance;
@@ -5029,8 +5663,7 @@ async function refreshLoansFromSupabase() {
     const local = localCache.find(x => String(x.id) === String(l.id));
     if (local && local.balance <= 0 && l.balance > 0) {
       // Local is paid but Supabase is not — fix Supabase silently
-      supa.from('loans').update({ balance: 0, status: 'Paid', payments: local.payments || [] })
-        .eq('id', Number(l.id)).then(() => {}).catch(() => {});
+      _sbFetch('loans?id=eq.' + Number(local.id), { method: 'PATCH', body: { balance: 0, status: 'Paid', payments: local.payments || [] }, prefer: 'return=minimal' }).catch(() => {});
       l.balance = 0;
       l.status  = 'Paid';
     }
@@ -5192,8 +5825,8 @@ function renderOutstandingTable() {
           ${o.source==='manual' ? `<div><span style="font-size:10px;text-transform:uppercase;display:block;margin-bottom:1px;">Transactions</span>${(o.payments||[]).length} recorded</div>` : ''}
         </div>
         <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--surface3);">
-          <button class="tbl-btn" onclick="${o.source==='manual'?'viewDebt('+o.id+')':"viewOrder('" + o.id + "')"}">${o.source==='manual'?'👁 View Profile':'View'}</button>
-
+          <button class="tbl-btn" onclick="${o.source==='manual'?'viewDebt('+o.id+')':"viewOrder('" + o.id + "')"}">${o.source==='manual'?'👁 View':'View'}</button>
+          ${o.source==='manual'?`<button class="tbl-btn" onclick="openEditDebt(${o.id})" style="color:var(--gold);border-color:rgba(16,185,129,0.3);">✏️ Edit</button>`:''}
           ${o.source==='manual'?`<button class="tbl-btn danger" onclick="deleteDebt(${o.id})">Remove</button>`:''}
         </div>
       </div>
@@ -5394,21 +6027,84 @@ async function deleteTx(debtId, txIdx) {
 }
 
 // ── Edit profile ──
-function openEditDebt() {
-  const debt = getManualDebts().find(d => d.id === _pvId);
+function openEditDebt(idArg) {
+  // Accept id directly (from card) or fall back to _pvId (from profile view)
+  const id   = idArg !== undefined ? idArg : _pvId;
+  const debt = getManualDebts().find(d => d.id === id);
   if (!debt) return;
-  $('#edit-name').val(debt.clientName);
-  $('#edit-phone').val(debt.clientPhone||'');
+
+  // Keep track of which loan we're editing
+  _pvId = id;
+
+  // Loan ID badge
+  document.getElementById('edit-loan-id-badge').textContent = 'Loan ID: #' + id;
+
+  // Populate staff dropdown
+  const sel = document.getElementById('edit-staff-select');
+  sel.innerHTML = '<option value="">— Select Staff —</option>';
+  getStaffProfiles().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).forEach(function(s) {
+    const opt = document.createElement('option');
+    opt.value = s.staffId || s.name;
+    opt.dataset.name  = s.name;
+    opt.dataset.phone = s.phone || '';
+    opt.textContent   = s.name + (s.position ? ' · ' + s.position : '');
+    // Pre-select if matches current loan
+    if (s.name.toLowerCase() === (debt.clientName||'').toLowerCase() ||
+        (s.staffId && s.staffId === debt.staffId)) {
+      opt.selected = true;
+    }
+    sel.appendChild(opt);
+  });
+
+  // Fill fields
+  $('#edit-name').val(debt.clientName || '');
+  $('#edit-phone').val(debt.clientPhone || '');
+  $('#edit-amount').val(debt.amount || debt.balance || 0);
   if (debt.collectedDate && debt.collectedDate.includes('T')) {
     $('#edit-collected').val(debt.collectedDate.slice(0,10));
     $('#edit-collected-time').val(debt.collectedDate.slice(11,16));
   } else {
-    $('#edit-collected').val(debt.collectedDate||'');
+    $('#edit-collected').val(debt.collectedDate || '');
     $('#edit-collected-time').val('');
   }
-  $('#edit-due').val(debt.dueDate||'');
-  $('#edit-notes').val(debt.notes||'');
+  $('#edit-due').val(debt.dueDate || '');
+  $('#edit-notes').val(debt.notes || '');
+  $('#edit-phone-error').hide();
+
+  // Set status buttons
+  setEditLoanStatus(debt.balance <= 0 ? 'Paid' : (debt.status || 'Outstanding'));
+
   $('#editDebtModal').css('display','flex');
+}
+
+function onEditDebtStaffSelect() {
+  const sel = document.getElementById('edit-staff-select');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.name) {
+    $('#edit-name').val(opt.dataset.name);
+    if (opt.dataset.phone) $('#edit-phone').val(opt.dataset.phone);
+  }
+}
+
+function setEditLoanStatus(status) {
+  document.getElementById('edit-status').value = status;
+  const obtn = document.getElementById('edit-status-outstanding');
+  const pbtn = document.getElementById('edit-status-paid');
+  if (status === 'Paid') {
+    pbtn.style.background = 'rgba(16,185,129,0.18)';
+    pbtn.style.color      = 'var(--green)';
+    pbtn.style.borderColor= 'rgba(16,185,129,0.4)';
+    obtn.style.background = 'var(--surface2)';
+    obtn.style.color      = 'var(--text-muted)';
+    obtn.style.borderColor= 'rgba(255,255,255,0.1)';
+  } else {
+    obtn.style.background = 'rgba(251,191,36,0.12)';
+    obtn.style.color      = '#fbbf24';
+    obtn.style.borderColor= 'rgba(251,191,36,0.4)';
+    pbtn.style.background = 'var(--surface2)';
+    pbtn.style.color      = 'var(--text-muted)';
+    pbtn.style.borderColor= 'rgba(255,255,255,0.1)';
+  }
 }
 
 function closeEditDebt() {
@@ -5418,25 +6114,60 @@ function closeEditDebt() {
 function saveEditDebt() {
   const phone = $('#edit-phone').val().trim();
   if (phone && phone.replace(/\D/g,'').length !== 11) {
+    $('#edit-phone-error').show();
     showToast('⚠️ Phone must be exactly 11 digits'); return;
   }
+  $('#edit-phone-error').hide();
+
   const debts = getManualDebts();
   const debt  = debts.find(d => d.id === _pvId);
   if (!debt) return;
-  debt.clientName    = $('#edit-name').val().trim() || debt.clientName;
+
+  const btn = document.getElementById('editDebtSaveBtn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  const newName   = $('#edit-name').val().trim() || debt.clientName;
+  const newAmount = parseFloat($('#edit-amount').val()) || debt.amount || debt.balance;
+  const newStatus = document.getElementById('edit-status').value;
+  const editDate  = $('#edit-collected').val();
+  const editTime  = $('#edit-collected-time').val();
+
+  // Recalculate balance if amount changed
+  const oldAmount    = debt.amount || 0;
+  const totalRepaid  = (debt.payments||[]).filter(p=>p.type==='debit').reduce((s,p)=>s+p.amount, 0);
+  const newBalance   = newStatus === 'Paid' ? 0 : Math.max(0, newAmount - totalRepaid);
+
+  debt.clientName    = newName;
   debt.clientPhone   = phone;
-  const editDate = $('#edit-collected').val();
-  const editTime = $('#edit-collected-time').val();
+  debt.amount        = newAmount;
+  debt.balance       = newBalance;
+  debt.status        = newStatus === 'Paid' ? 'Paid' : (newBalance <= 0 ? 'Paid' : 'Outstanding');
   debt.collectedDate = editDate ? (editTime ? editDate + 'T' + editTime : editDate) : '';
   debt.dueDate       = $('#edit-due').val();
   debt.notes         = $('#edit-notes').val().trim();
+
+  // Update staffId if staff was selected from dropdown
+  const sel = document.getElementById('edit-staff-select');
+  const selOpt = sel.options[sel.selectedIndex];
+  if (selOpt && selOpt.dataset.name) {
+    debt.staffId = selOpt.value || debt.staffId;
+  }
+
+  // Update opening credit entry amount if loan amount changed
+  if (newAmount !== oldAmount && debt.payments && debt.payments.length > 0) {
+    const creditIdx = debt.payments.findIndex(p => p.type === 'credit');
+    if (creditIdx >= 0) debt.payments[creditIdx].amount = newAmount;
+  }
+
   localStorage.setItem('incline_manual_debts', JSON.stringify(debts));
-  // Sync to Supabase
   sbUpdateLoan(debt).catch(e => console.error('Edit loan sync failed:', e));
+
   closeEditDebt();
-  renderProfileView(_pvId);
+  if ($('#os-profile').is(':visible')) renderProfileView(_pvId);
   renderOutstandingTable();
-  showToast('✅ Profile updated');
+  updateAlumniBadge();
+  btn.textContent = '💾 Save Changes'; btn.disabled = false;
+  showToast('✅ Loan updated!');
 }
 
 // ── WhatsApp Share Loan Statement ──
@@ -5916,9 +6647,9 @@ function confirmPayment() {
     localStorage.setItem('incline_manual_debts', JSON.stringify(debts));
     const fullySettled = debt.balance <= 0;
     // Sync to Supabase
-    supa.from('loans').update({
+    _sbFetch('loans?id=eq.' + (Number(debt.id), { method: 'PATCH', body: {
       balance: debt.balance, status: debt.status, payments: debt.payments
-    }).eq('id', Number(debt.id)).catch(e => console.error('Loan sync:', e));
+    }, prefer: 'return=minimal' })).catch(e => console.error('Loan sync:', e));
     renderOutstandingTable();
     updateAlumniBadge();
     closePaymentModal();
@@ -5938,11 +6669,11 @@ function confirmPayment() {
     d.payments.unshift({ type:'debit', amount: payment, note: note, date: paymentTimestamp });
     localStorage.setItem('incline_manual_debts', JSON.stringify(debts2));
     // Force-update Supabase directly with explicit values
-    supa.from('loans').update({
+    _sbFetch('loans?id=eq.' + (Number(d.id), { method: 'PATCH', body: {
       balance: d.balance,
       status: d.status,
       payments: d.payments || []
-    }).eq('id', Number(d.id)).then(({error}) => {
+    }, prefer: 'return=minimal' })).then(({error}) => {
       if (error) {
         console.error('Loan sync failed:', error);
         showToast('⚠️ Saved locally — server sync failed');
@@ -5975,13 +6706,12 @@ function confirmPayment() {
     if (tDebt.balance <= 0) { tDebt.balance = 0; tDebt.status = 'Paid'; }
     localStorage.setItem('incline_manual_debts', JSON.stringify(tDebts));
     // Sync to Supabase — try string id first (Supabase UUID), fallback to number (legacy)
-    supa.from('loans').update({
+    _sbFetch('loans?id=eq.' + (String(tDebt.id), { method: 'PATCH', body: {
       balance: tDebt.balance, status: tDebt.status, payments: tDebt.payments
-    }).eq('id', String(tDebt.id))
+    }, prefer: 'return=minimal' }))
     .then(function(res) {
       if (res && res.error) {
-        return supa.from('loans').update({ balance: tDebt.balance, status: tDebt.status, payments: tDebt.payments })
-          .eq('id', Number(tDebt.id));
+        return _sbFetch('loans?id=eq.' + (Number(tDebt.id), { method: 'PATCH', body: { balance: tDebt.balance, status: tDebt.status, payments: tDebt.payments }, prefer: 'return=minimal' }));
       }
     }).catch(function(e) { console.error('Loan sync:', e); });
     renderOutstandingTable();
@@ -6000,8 +6730,7 @@ function confirmPayment() {
     if (order.balance === 0 && order.status === 'Ready') order.status = 'Delivered';
     localStorage.setItem('incline_orders', JSON.stringify(orders));
     // Sync to Supabase
-    supa.from('orders').update({ deposit: order.deposit, balance: order.balance, status: order.status })
-      .eq('id', String(order.id))
+    _sbFetch('orders?id=eq.' + String(order.id), { method: 'PATCH', body: { deposit: order.deposit, balance: order.balance, status: order.status }, prefer: 'return=minimal' })
       .then(() => {}).catch(e => console.error('Supabase payment sync failed:', e));
     renderOutstandingTable();
     renderOrdersTable();
@@ -6229,8 +6958,9 @@ function onStaffNameInput() {
 
   const items = staff.map((s, i) => {
     const initials = s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    const thumb = s.photo
-      ? `<div class="staff-ac-thumb"><img src="${s.photo}"/></div>`
+    const photoSrc = getStaffPhoto(String(s.id));
+    const thumb = photoSrc
+      ? `<div class="staff-ac-thumb"><img src="${photoSrc}"/></div>`
       : `<div class="staff-ac-thumb">${initials}</div>`;
     const sub = [s.position, s.dept, s.phone].filter(Boolean).join(' · ');
     return `<div class="staff-ac-item" data-idx="${i}" onclick="selectStaffAc(${i})">
@@ -6329,23 +7059,24 @@ function lockCalcStaffFields(lock) {
 
 // ════════════════════════════════════════════════════════════════════
 
-var _staffMemCache = null;
+// In-memory photo store — photos are too large for localStorage (5MB limit)
+// Populated from Supabase every fetch. Keyed by String(staff_id).
+var _photoCache = {};
+function getStaffPhoto(id) { return _photoCache[String(id)] || null; }
+
+var _staffMemCache = null;  // null = not yet loaded; [] = loaded but empty
 function getStaffProfiles() {
-  if (_staffMemCache) return _staffMemCache;
+  if (_staffMemCache !== null) return _staffMemCache;  // explicit null check — [] is truthy!
   try { return JSON.parse(localStorage.getItem('incline_staff_profiles')) || []; } catch { return []; }
 }
 
 function saveStaffProfiles(list) {
   _staffMemCache = list || [];
-  var attempt = function(data) {
-    try { localStorage.setItem('incline_staff_profiles', JSON.stringify(data)); return true; }
-    catch(e) { return false; }
-  };
-  if (!attempt(list)) {
-    localStorage.removeItem('incline_staff_profiles');
-    var slim = (list||[]).map(function(s){ var c=Object.assign({},s); delete c.photo; return c; });
-    attempt(slim);
-  }
+  // Capture any photos into _photoCache; strip them before localStorage write
+  (list || []).forEach(function(s) { if (s.photo) _photoCache[String(s.id)] = s.photo; });
+  var slim = (list || []).map(function(s) { var c = Object.assign({}, s); delete c.photo; return c; });
+  try { localStorage.setItem('incline_staff_profiles', JSON.stringify(slim)); }
+  catch(e) { console.warn('saveStaffProfiles: localStorage full, in-memory only'); }
 }
 
 function clearAddStaffPhoto() {
@@ -6451,17 +7182,17 @@ function addStaff() {
     residence: document.getElementById('newStaffResidence').value.trim(),
     state_of_origin: document.getElementById('newStaffState').value.trim(),
     lga: document.getElementById('newStaffLGA').value.trim(),
-    start_date: document.getElementById('newStaffStartDate').value || null,
     photo
   };
 
   sbAddStaff(profile).then(function(saved) {
+    if (saved.photo) _photoCache[String(saved.id)] = saved.photo;
     const list = getStaffProfiles();
     list.unshift({
       id: saved.id, name: saved.name, staffId: saved.staff_id,
       phone: saved.phone, position: saved.position, dept: saved.department,
       bankName: saved.bank_name, accountNumber: saved.account_number,
-      accountName: saved.account_name, photo: saved.photo, addedAt: saved.created_at,
+      accountName: saved.account_name, addedAt: saved.created_at,
       dob: saved.date_of_birth || '', age: saved.age || '',
       residence: saved.residence || '', state: saved.state_of_origin || '', lga: saved.lga || '',
       startDate: saved.start_date || ''
@@ -6536,90 +7267,88 @@ function populateLoanStaffDropdown() {
 function renderAdminStaffList(forceRefresh) {
   const $el = $('#adminStaffList');
 
-  function _render(supaList) {
-    const localList = supaList.map(s => ({
-      id: s.id, name: s.name, staffId: s.staff_id,
-      phone: s.phone, position: s.position, dept: s.department,
-      gender: s.gender || '',
-      bankName: s.bank_name, accountNumber: s.account_number,
-      accountName: s.account_name, photo: s.photo, addedAt: s.created_at,
-      dob: s.date_of_birth || '',
-      age: s.age || '',
-      residence: s.residence || '',
-      state: s.state_of_origin || '',
-      lga: s.lga || '',
-      startDate: s.start_date || ''
-    }));
-    saveStaffProfiles(localList);
-    $('#staffCountBadge').text(localList.length + ' member' + (localList.length !== 1 ? 's' : ''));
-
-    if (!localList.length) {
+  function _drawList(staffList, allOrders) {
+    if (!staffList.length) {
       $el.html('<div class="empty-state" style="padding:40px 0;"><div class="icon">👥</div><p style="font-size:13px;">No staff added yet.<br/><span style="font-size:12px;color:var(--text-muted);">Add a staff member above to get started.</span></p></div>');
       return;
     }
-
-    sbGetOrders(null).then(function(allOrders) {
-      let html = '';
-      localList.forEach(s => {
-        const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-        const avatarHtml = s.photo
-          ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
-          : initials;
-        const orderCount = allOrders.filter(o => (o.staff_id || o.staffId) === s.staffId).length;
-        html += `
-          <div class="admin-staff-row">
-            <div class="admin-staff-thumb">${avatarHtml}</div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:14px;font-weight:600;color:var(--text);">${s.name}</div>
-              <div style="font-size:11px;color:var(--text-muted);">${s.staffId || '—'} · ${s.position || '—'}${s.dept ? ' · ' + s.dept : ''}${s.gender ? ' · ' + (s.gender === 'Male' ? '👨' : '👩') + ' ' + s.gender : ''}</div>
-            </div>
-            <div style="font-size:11px;color:var(--text-muted);text-align:right;margin-right:12px;">
-              <div style="color:var(--gold);font-weight:600;">${orderCount} orders</div>
-              <div>${s.phone || 'No phone'}</div>
-            </div>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button class="tbl-btn" onclick="openEditStaff('${s.id}')" style="color:var(--gold);border-color:rgba(16,185,129,0.3);">✏️ Edit</button>
-              <button class="tbl-btn danger" onclick="deleteStaff('${s.id}')">🗑</button>
-            </div>
+    // Sort A→Z
+    const sorted = staffList.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    let html = '';
+    sorted.forEach(function(s) {
+      const initials   = (s.name || '?').split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+      const photo      = getStaffPhoto(String(s.id));
+      const avatarHtml = photo
+        ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+        : initials;
+      const orderCount = allOrders.filter(function(o){ return (o.staff_id || o.staffId) === s.staffId; }).length;
+      html += `
+        <div class="admin-staff-row">
+          <div class="admin-staff-thumb">${avatarHtml}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:var(--text);">${s.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${s.staffId||'—'} · ${s.position||'—'}${s.dept?' · '+s.dept:''}${s.gender?' · '+(s.gender==='Male'?'👨':'👩')+' '+s.gender:''}</div>
           </div>
-          ${s.startDate ? `<div style="margin-top:4px;margin-left:52px;font-size:11px;color:rgba(16,185,129,0.65);display:flex;align-items:center;gap:5px;"><span style="font-size:13px;">📅</span> Started: <strong style="color:rgba(16,185,129,0.9);">${new Date(s.startDate + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong></div>` : ''}
-        `;
-      });
-      $el.html(html);
+          <div style="font-size:11px;color:var(--text-muted);text-align:right;margin-right:12px;">
+            <div style="color:var(--gold);font-weight:600;">${orderCount} orders</div>
+            <div>${s.phone||'No phone'}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="tbl-btn" onclick="openEditStaff('${s.id}')" style="color:var(--gold);border-color:rgba(16,185,129,0.3);">✏️ Edit</button>
+            <button class="tbl-btn danger" onclick="deleteStaff('${s.id}')">🗑</button>
+          </div>
+        </div>
+        ${s.startDate ? `<div style="margin-top:4px;margin-left:52px;font-size:11px;color:rgba(16,185,129,0.65);display:flex;align-items:center;gap:5px;"><span style="font-size:13px;">📅</span> Started: <strong style="color:rgba(16,185,129,0.9);">${new Date(s.startDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong></div>` : ''}
+      `;
     });
+    $el.html(html);
   }
 
-  // Only hit Supabase when explicitly asked (tab switch / page load / manual reload)
-  // Otherwise use the already-fresh local cache to avoid race conditions
-  if (forceRefresh !== false) {
-    $el.html('<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px;">Loading staff...</div>');
-    sbGetStaff().then(_render).catch(function() {
+  // Show loading placeholder
+  $el.html('<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px;">Loading staff...</div>');
+
+  // Always fetch from Supabase — this populates _photoCache with photos
+  sbGetStaff().then(function(supaList) {
+    if (!supaList || !supaList.length) {
+      // Supabase returned empty — fall back to local cache
       const cached = getStaffProfiles();
-      _render(cached.map(s => ({
-        id: s.id, name: s.name, staff_id: s.staffId,
-        phone: s.phone, position: s.position, department: s.dept,
-        gender: s.gender, bank_name: s.bankName,
-        account_number: s.accountNumber, account_name: s.accountName,
-        photo: s.photo, created_at: s.addedAt,
-        date_of_birth: s.dob || null, age: s.age || null,
-        residence: s.residence || '', state_of_origin: s.state || '', lga: s.lga || '',
-        start_date: s.startDate || ''
-      })));
+      $('#staffCountBadge').text(cached.length + ' member' + (cached.length !== 1 ? 's' : ''));
+      sbGetOrders(null).then(function(orders){ _drawList(cached, orders); }).catch(function(){ _drawList(cached, []); });
+      return;
+    }
+
+    // Normalize Supabase format → app format, caching photos
+    const staffList = supaList.map(function(s) {
+      if (s.photo) _photoCache[String(s.id)] = s.photo;
+      return {
+        id: s.id, name: s.name, staffId: s.staff_id,
+        phone: s.phone, position: s.position, dept: s.department,
+        gender: s.gender || '',
+        bankName: s.bank_name, accountNumber: s.account_number,
+        accountName: s.account_name, addedAt: s.created_at,
+        dob: s.date_of_birth || '', age: s.age || '',
+        residence: s.residence || '', state: s.state_of_origin || '',
+        lga: s.lga || '', startDate: s.start_date || '', bio: s.bio || ''
+      };
     });
-  } else {
-    // Use local cache directly — no network call
+
+    saveStaffProfiles(staffList);
+    $('#staffCountBadge').text(staffList.length + ' member' + (staffList.length !== 1 ? 's' : ''));
+
+    sbGetOrders(null)
+      .then(function(orders){ _drawList(staffList, orders); })
+      .catch(function(){ _drawList(staffList, []); });
+
+  }).catch(function() {
+    // Network error — use local cache
     const cached = getStaffProfiles();
-    _render(cached.map(s => ({
-      id: s.id, name: s.name, staff_id: s.staffId,
-      phone: s.phone, position: s.position, department: s.dept,
-      gender: s.gender, bank_name: s.bankName,
-      account_number: s.accountNumber, account_name: s.accountName,
-      photo: s.photo, created_at: s.addedAt,
-      date_of_birth: s.dob || null, age: s.age || null,
-      residence: s.residence || '', state_of_origin: s.state || '', lga: s.lga || '',
-      start_date: s.startDate || ''
-    })));
-  }
+    $('#staffCountBadge').text(cached.length + ' member' + (cached.length !== 1 ? 's' : ''));
+    if (!cached.length) {
+      $el.html('<div class="empty-state" style="padding:40px 0;"><div class="icon">👥</div><p>Could not load staff. Check your connection.</p></div>');
+    } else {
+      sbGetOrders(null).then(function(orders){ _drawList(cached, orders); }).catch(function(){ _drawList(cached, []); });
+    }
+  });
 }
 
 function updateStaffPhoto(id, input) {
@@ -6627,15 +7356,12 @@ function updateStaffPhoto(id, input) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
-    const list = getStaffProfiles();
-    const s = list.find(x => String(x.id) === String(id));
-    if (!s) return;
-    s.photo = e.target.result;
-    saveStaffProfiles(list);
-    supa.from('staff').update({ photo: e.target.result }).eq('id', String(id))
+    const photoData = e.target.result;
+    _photoCache[String(id)] = photoData;  // photos live in _photoCache only
+    _sbFetch('staff?id=eq.' + id, { method: 'PATCH', body: { photo: photoData }, prefer: 'return=minimal' })
       .then(() => showToast('✅ Photo updated!'))
-      .catch(() => showToast('✅ Photo saved locally'));
-    renderAdminStaffList();
+      .catch(() => showToast('⚠️ Photo saved in session — check connection'));
+    renderAdminStaffList(false);
   };
   reader.readAsDataURL(file);
 }
@@ -6669,15 +7395,17 @@ function openEditStaff(id) {
   document.getElementById('editStaffState').value     = s.state || '';
   document.getElementById('editStaffLGA').value       = s.lga || '';
   document.getElementById('editStaffStartDate').value = s.startDate || '';
+  document.getElementById('editStaffBio').value        = s.bio || '';
 
   // Set gender buttons
   setEditGender(s.gender || '');
 
-  // Set avatar preview
+  // Set avatar preview — photo lives in _photoCache, not on the profile object
   const preview = document.getElementById('editStaffAvatarPreview');
-  _editStaffPhotoData = s.photo || null;
-  if (s.photo) {
-    preview.innerHTML = '<img src="' + s.photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';
+  const _ep = getStaffPhoto(s.id) || s.photo || null;
+  _editStaffPhotoData = _ep;
+  if (_ep) {
+    preview.innerHTML = '<img src="' + _ep + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';
   } else {
     const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     preview.textContent = initials;
@@ -6739,6 +7467,7 @@ async function saveEditStaff() {
   const bank     = document.getElementById('editStaffBank').value.trim();
   const acctNum  = document.getElementById('editStaffAcctNum').value.trim();
   const acctName = document.getElementById('editStaffAcctName').value.trim();
+  const bio      = document.getElementById('editStaffBio').value.trim();
 
   if (!name)    { showToast('⚠️ Name is required'); return; }
   if (!staffId) { showToast('⚠️ Staff ID is required'); return; }
@@ -6748,19 +7477,23 @@ async function saveEditStaff() {
   btn.textContent = 'Saving...'; btn.disabled = true;
 
   try {
-    const matchKey = originalStaffId || staffId;
     const updates = {
       name, staff_id: staffId, phone,
       position, department: dept, gender,
       bank_name: bank, account_number: acctNum, account_name: acctName,
-      date_of_birth: dob, age, residence, state_of_origin: state, lga,
-      start_date: startDate
+      date_of_birth: dob, age, residence, state_of_origin: state, lga, bio
     };
     if (password) updates.password = password;
-    if (_editStaffPhotoData) updates.photo = _editStaffPhotoData;
-
-    const { data, error } = await supa
-      .from('staff').update(updates).eq('staff_id', matchKey).select();
+    if (_editStaffPhotoData) {
+      updates.photo = _editStaffPhotoData;
+      _photoCache[String(id)] = _editStaffPhotoData;  // keep photo in memory cache
+    }
+    // Match by UUID primary key — never staff_id (which the user can change)
+    let data, error;
+    try {
+      data = await _sbFetch('staff?id=eq.' + id, { method: 'PATCH', body: updates, prefer: 'return=representation' });
+      if (!Array.isArray(data)) data = data ? [data] : [];
+    } catch(e) { error = e; }
 
     if (error) { showToast('⚠️ Save failed: ' + error.message); return; }
 
@@ -6774,11 +7507,10 @@ async function saveEditStaff() {
         phone: row.phone, position: row.position, dept: row.department,
         gender: row.gender || '',
         bankName: row.bank_name, accountNumber: row.account_number,
-        accountName: row.account_name,
-        photo: row.photo || list[idx].photo, addedAt: row.created_at,
+        accountName: row.account_name, addedAt: row.created_at,
         dob: row.date_of_birth || '', age: row.age || '',
         residence: row.residence || '', state: row.state_of_origin || '', lga: row.lga || '',
-        startDate: row.start_date || ''
+        startDate: row.start_date || '', bio: row.bio || ''
       };
     } else if (idx >= 0) {
       // Patch directly if Supabase didn't return the row
@@ -6787,17 +7519,36 @@ async function saveEditStaff() {
       list[idx].bankName = bank; list[idx].accountNumber = acctNum; list[idx].accountName = acctName;
       list[idx].dob = dob; list[idx].age = age; list[idx].residence = residence;
       list[idx].state = state; list[idx].lga = lga; list[idx].startDate = startDate;
-      if (_editStaffPhotoData) list[idx].photo = _editStaffPhotoData;
+      list[idx].bio = bio;
+      if (_editStaffPhotoData) _photoCache[String(id)] = _editStaffPhotoData;  // update photo cache
     }
     saveStaffProfiles(list);
 
+    // ── Propagate name change to all existing orders ──
+    try {
+      await _sbFetch('orders?staff_id=eq.' + encodeURIComponent(staffId), {
+        method: 'PATCH',
+        body: { client_name: name, staff_name: name },
+        prefer: 'return=minimal'
+      });
+    } catch(e) { console.warn('Could not update order names in Supabase:', e); }
+    // Also update local order cache so profile/task screens reflect new name instantly
+    const _localOrders = getOrders().map(function(o) {
+      if (String(o.staffId) === String(staffId)) {
+        return Object.assign({}, o, { clientName: name });
+      }
+      return o;
+    });
+    localStorage.setItem('incline_orders', JSON.stringify(_localOrders));
+
     closeEditStaff();
     renderAdminStaffList(false);
-    renderStaffCards();
-    renderAdminPanel();
-    renderOrdersTable();
+    const _at = $('.tab.active').data('tab');
+    if (_at === 'reports')      renderStaffCards();
+    if (_at === 'admin')        renderAdminPanel();
+    if (_at === 'orders')       renderOrdersTable();
+    if (_at === 'outstanding' && typeof renderOutstandingTable === 'function') renderOutstandingTable();
     if (typeof populateLoanStaffDropdown === 'function') populateLoanStaffDropdown();
-    if (typeof renderOutstandingTable    === 'function') renderOutstandingTable();
     updateAlumniBadge();
     var reloadBtn = document.getElementById('adminReloadBtn');
     if (reloadBtn) { reloadBtn.classList.remove('reload-flash'); void reloadBtn.offsetWidth; reloadBtn.classList.add('reload-flash'); }
@@ -6840,29 +7591,32 @@ async function deleteStaff(id) {
 
     // 1. Delete their orders and debits
     if (staffId) {
-      const r1 = await supa.from('orders').delete().eq('staff_id', staffId);
+      const r1 = await _sbFetch('orders?staff_id=eq.' + staffId, { method: 'DELETE', prefer: 'return=minimal' }).then(() => ({})).catch(e => ({ error: e }));
       if (r1.error) console.warn('Orders delete:', r1.error.message);
-      const r2 = await supa.from('debits').delete().eq('staff_id', staffId);
+      const r2 = await _sbFetch('debits?staff_id=eq.' + staffId, { method: 'DELETE', prefer: 'return=minimal' }).then(() => ({})).catch(e => ({ error: e }));
       if (r2.error) console.warn('Debits delete:', r2.error.message);
     }
     // Also delete orders matched by staff name
     if (staffName) {
-      try { await supa.from('orders').delete().eq('staff_name', staffName); } catch(e) {}
-      try { await supa.from('orders').delete().eq('client_name', staffName); } catch(e) {}
+      try { await _sbFetch('orders?staff_name=eq.' + encodeURIComponent(staffName), { method: 'DELETE', prefer: 'return=minimal' }); } catch(e) {}
+      try { await _sbFetch('orders?client_name=eq.' + encodeURIComponent(staffName), { method: 'DELETE', prefer: 'return=minimal' }); } catch(e) {}
     }
 
     // 2. Delete the staff profile
-    const { error, data } = await supa.from('staff').delete().eq('id', String(id)).select();
-    if (error) {
-      showToast('⚠️ Delete failed: ' + (error.message || 'Check connection'));
+    let _sDelErr;
+    try { await _sbFetch('staff?id=eq.' + String(id), { method: 'DELETE', prefer: 'return=minimal' }); } catch(e) { _sDelErr = e; }
+    if (_sDelErr) {
+      showToast('⚠️ Delete failed: ' + (_sDelErr.message || 'Check connection'));
       return;
     }
 
     // 3. Wipe from ALL local caches
     saveStaffProfiles(list.filter(x => String(x.id) !== String(id)));
+    // Remove photo from cache too
+    delete _photoCache[String(id)];
     const orders = getOrders().filter(o =>
       String(o.staffId) !== String(staffId) &&
-      o.clientName !== staffName
+      (o.clientName || '').toLowerCase() !== (staffName || '').toLowerCase()
     );
     localStorage.setItem('incline_orders', JSON.stringify(orders));
 
@@ -6891,10 +7645,12 @@ function getStaffStats(staffName, timeframe) {
   const profile = profiles.find(s => s.name.toLowerCase() === staffName.toLowerCase());
   const now = new Date();
   // Match by staffId (Supabase orders) OR clientName (legacy local orders)
-  let filtered = orders.filter(o =>
-    (profile && o.staffId && o.staffId === profile.staffId) ||
-    (o.clientName && o.clientName.toLowerCase() === staffName.toLowerCase())
-  );
+  const _sname = staffName.toLowerCase().trim();
+  let filtered = orders.filter(o => {
+    if (profile && o.staffId && o.staffId === profile.staffId) return true;
+    const _on = (o.clientName || '').toLowerCase().trim();
+    return _on === _sname || _on.includes(_sname) || _sname.includes(_on);
+  });
   if (timeframe === 'week') {
     const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     filtered = filtered.filter(o => new Date(o.date) >= cutoff);
@@ -6958,7 +7714,7 @@ function _renderStaffCardsUI(timeframe, search) {
   // Only show currently registered staff — no ghost names from deleted staff orders
   const registered = getStaffProfiles();
   let allStaff = [...registered];
-  if (search) allStaff = allStaff.filter(s => s.name.toLowerCase().includes(search));
+  if (search) allStaff = allStaff.filter(s => (s.name||'').toLowerCase().includes(search));
 
   // Only show staff who have orders in the selected timeframe, or registered staff always
   const grid = $('#staffCardsGrid');
@@ -6981,8 +7737,9 @@ function _renderStaffCardsUI(timeframe, search) {
     if (s.id && String(s.id).startsWith('order_') && !stats.orders.length) return;
 
     const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const avatarContent = s.photo
-      ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+    const _sp = getStaffPhoto(s.id);
+    const avatarContent = _sp
+      ? `<img src="${_sp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
       : `<span>${initials}</span>`;
 
     html += `
@@ -7044,7 +7801,7 @@ function renderStaffReport(name) {
   const registered = getStaffProfiles();
   const profile = registered.find(s => s.name.toLowerCase() === name.toLowerCase());
   const phone = profile ? profile.phone : (stats.orders[0] ? stats.orders[0].clientPhone : '');
-  const photo = profile ? profile.photo : null;
+  const photo = profile ? (getStaffPhoto(String(profile.id)) || profile.photo || null) : null;
   const position = profile ? profile.position : '';
   const dept = profile ? profile.dept : '';
 
@@ -7517,6 +8274,11 @@ if ('serviceWorker' in navigator) {
           <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">📅 Date Started Work</label>
           <input type="date" id="editStaffStartDate" style="width:100%;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;"/>
         </div>
+        <div class="form-group" style="margin:0;grid-column:1/-1;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">📝 Bio / Notes</label>
+          <textarea id="editStaffBio" rows="3" placeholder="Short bio, skills, notes about this staff..."
+            style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+        </div>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:20px;">
@@ -7541,12 +8303,6 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
-<style>
-@keyframes confirmPop {
-  from { opacity:0; transform:scale(0.88) translateY(16px); }
-  to   { opacity:1; transform:scale(1)    translateY(0); }
-}
-</style>
 <script>
 var _confirmCallback = null;
 
@@ -7624,8 +8380,20 @@ var _editingSalaryId = null;
 var _allSalariesCache = [];
 
 async function renderSalaryTab() {
-  // Fetch fresh from Supabase then draw
-  _allSalariesCache = await sbGetSalaries();
+  // Fetch fresh salaries AND ensure staff photos are in _photoCache
+  const [salaries, staffList] = await Promise.all([
+    sbGetSalaries(),
+    sbGetStaff().catch(() => null)
+  ]);
+  // Cache photos from fresh Supabase staff data
+  if (staffList && staffList.length) {
+    staffList.forEach(function(s) {
+      if (s.photo) _photoCache[String(s.id)] = s.photo;
+    });
+    _lastFetch.staff = Date.now();
+  }
+  _allSalariesCache = salaries;
+  _lastFetch.salaries = Date.now();
   _drawSalaryGrid();
 }
 
@@ -7661,11 +8429,13 @@ function _drawSalaryGrid() {
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);">${staff.length}</div>
     </div>`;
 
-  const filtered = staff.filter(s =>
-    !search ||
-    (s.name || '').toLowerCase().includes(search) ||
-    (s.staffId || '').toLowerCase().includes(search)
-  );
+  const filtered = staff
+    .filter(s =>
+      !search ||
+      (s.name || '').toLowerCase().includes(search) ||
+      (s.staffId || '').toLowerCase().includes(search)
+    )
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   const typeColors = { Monthly:'rgba(16,185,129,0.15)', Weekly:'rgba(251,191,36,0.15)', Daily:'rgba(99,102,241,0.15)', Bonus:'rgba(245,158,11,0.15)', Advance:'rgba(239,68,68,0.15)', Other:'rgba(156,163,175,0.15)' };
 
@@ -7675,15 +8445,16 @@ function _drawSalaryGrid() {
     const last      = entries[0];
     const lastDate  = last ? last.date_paid : null;
     const count     = entries.length;
-    const photo     = s.photo
-      ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+    const photoSrc  = getStaffPhoto(s.id) || s.photo || null;
+    const photo     = photoSrc
+      ? `<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
       : `<span style="font-size:22px;">${s.gender === 'Female' ? '👩' : '👨'}</span>`;
     const initials  = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
 
     return `
     <div class="sal-card" onclick="openSalaryProfile('${s.staffId}')">
       <div style="display:flex;align-items:center;gap:13px;margin-bottom:14px;">
-        <div class="sal-avatar">${s.photo ? photo : `<span style="font-size:15px;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;">${initials}</span>`}</div>
+        <div class="sal-avatar">${photoSrc ? photo : `<span style="font-size:15px;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;">${initials}</span>`}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name || '—'}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${s.staffId || ''} · ${s.position || '—'}</div>
@@ -7720,8 +8491,9 @@ async function openSalaryProfile(staffId) {
   const avEl = document.getElementById('sp-avatar');
   if (avEl) {
     const initials = (staff.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-    avEl.innerHTML = staff.photo
-      ? `<img src="${staff.photo}" style="width:100%;height:100%;object-fit:cover;"/>`
+    const avPhoto = getStaffPhoto(staff.id) || staff.photo || null;
+    avEl.innerHTML = avPhoto
+      ? `<img src="${avPhoto}" style="width:100%;height:100%;object-fit:cover;"/>`
       : `<span>${initials}</span>`;
   }
 
@@ -8030,82 +8802,6 @@ async function exportSalaryExcel() {
 
 <!-- ══ ANALYSIS TAB ══ -->
 <div class="tab-content" id="tab-analysis">
-<style>
-.anx-wrap { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
-
-/* Header */
-.anx-head {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  flex-wrap: wrap; gap: 12px; padding: 24px 0 22px;
-  border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;
-}
-.anx-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700; color: var(--text); }
-.anx-title em { color: var(--green); font-style: normal; }
-.anx-sub { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
-.anx-controls { display: flex; gap: 8px; flex-wrap: wrap; }
-.anx-sel {
-  background: var(--surface2); border: 1px solid rgba(255,255,255,0.08);
-  color: var(--text); border-radius: 8px; padding: 8px 12px;
-  font-size: 12px; outline: none; font-family: inherit; cursor: pointer;
-  transition: border-color 0.15s;
-}
-.anx-sel:focus { border-color: rgba(16,185,129,0.4); }
-
-/* Summary pills */
-.anx-pills { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
-.anx-pill {
-  background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 14px;
-}
-.anx-pill-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);
-  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
-}
-.anx-pill-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; color: var(--green); line-height: 1; }
-.anx-pill-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-top: 3px; }
-
-/* Card */
-.anx-card {
-  background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px; padding: 20px; margin-bottom: 16px;
-}
-.anx-card-title {
-  font-size: 12px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 16px;
-  display: flex; align-items: center; gap: 8px;
-}
-.anx-card-title::before {
-  content: ''; width: 3px; height: 14px;
-  background: linear-gradient(180deg, var(--gold), var(--gold-light));
-  border-radius: 2px; flex-shrink: 0;
-}
-
-/* Service rows */
-.anx-svc-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
-  transition: background 0.1s;
-}
-.anx-svc-row:hover { background: rgba(16,185,129,0.03); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
-.anx-svc-row:last-child { border-bottom: none; }
-.anx-svc-rank { font-size: 10px; color: rgba(255,255,255,0.15); width: 20px; text-align: right; flex-shrink: 0; font-family: 'Cormorant Garamond', serif; }
-.anx-svc-name { flex: 1; font-size: 14px; color: rgba(240,234,214,0.82); font-weight: 400; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.anx-svc-cat { font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
-.anx-svc-bar-wrap { flex: 0 0 140px; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
-.anx-svc-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
-.anx-svc-qty { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 700; color: var(--green); width: 36px; text-align: right; flex-shrink: 0; }
-.anx-svc-unit { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
-
-/* Empty state */
-.anx-empty { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 13px; }
-.anx-empty-icon { font-size: 36px; margin-bottom: 12px; }
-
-@media (max-width: 600px) {
-  .anx-pills { grid-template-columns: 1fr 1fr; }
-  .anx-svc-bar-wrap { display: none; }
-}
-</style>
 
 <div class="anx-wrap">
 
