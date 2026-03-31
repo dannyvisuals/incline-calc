@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -208,7 +207,6 @@ body {
   color: var(--text);
   font-family: 'DM Sans','Segoe UI',Arial,sans-serif;
   min-height: 100vh;
-
   background-color: #080d09;
   background-image:
     radial-gradient(ellipse 90% 55% at 12% 55%, rgba(16,185,129,0.12) 0%, transparent 68%),
@@ -1025,7 +1023,7 @@ header {
     background: var(--surface3) !important;
     cursor: not-allowed !important;
     pointer-events: none !important;
-    border-color: rgba(16,185,129,0.3) !important;
+    border-color: rgba(16, 185, 129, 0.253) !important;
     color: var(--gold) !important;
     font-weight: 600 !important;
   }
@@ -1829,6 +1827,78 @@ header {
   from { opacity:0; transform:scale(0.88) translateY(-10px); }
   to   { opacity:1; transform:scale(1)    translateY(0); }
 }
+#calcDropdown {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+
+  width: 240px;          /* ✅ medium sweet spot */
+  background: #000;
+  border-radius: 20px;
+  padding: 12px;
+
+  box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+  z-index: 9999;
+}
+#calcDropdown .calc-display {
+  width: 100%;
+  background: transparent;
+  color: #fff;
+
+  font-size: 28px;       /* slightly smaller */
+  text-align: right;
+
+  padding: 15px 10px;
+  margin-bottom: 8px;
+
+  border: none;
+}
+#calcDropdown .calc-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+#calcDropdown .calc-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;              /* tighter spacing */
+}
+#calcDropdown button:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+#calcDropdown .btn-gray {
+  background: #a5a5a5;
+  color: #000;
+}
+#calcDropdown .btn-orange {
+  background: #ff9500;
+  color: #fff;
+}
+#calcDropdown .btn-zero {
+  grid-column: span 2;   /* takes 2 spaces */
+  border-radius: 30px;   /* pill shape */
+  text-align: left;
+  padding-left: 20px;
+}
+#calcDropdown button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+#calcDropdown button {
+  padding: 6px !important;
+  font-size: 11px !important;
+  border-radius: 6px;
+}
+#calcDropdown .calc-display {
+  background: rgba(0, 0, 0, 0.3);
+  color: #00ffcc;
+
+  padding: 10px;
+  border-radius: 10px;
+
+  font-size: 18px;
+  margin-bottom: 10px;
+}
 .calc-display-wrap {
   padding:18px 18px 10px;
   background:rgba(0,0,0,0.35);
@@ -2392,8 +2462,8 @@ header {
   <!-- Page header -->
   <div class="calc-page-header">
     <div>
-      <div class="calc-page-title">New <span>Order</span></div>
-      <div class="calc-page-sub">Inclineworks International · Admin Panel</div>
+      <div class="calc-page-title"><span></span></div>
+      <div class="calc-page-sub"></div>
     </div>
     <div class="calc-receipt-num" id="calcHeaderReceiptNo">Receipt #—</div>
   </div>
@@ -2409,7 +2479,6 @@ header {
           <div class="calc-panel-head-icon">👤</div>
           <div>
             <div class="calc-panel-head-title">Staff Information</div>
-            <div class="calc-panel-head-sub">Who is this order for?</div>
           </div>
         </div>
         <div class="calc-panel-body">
@@ -2431,7 +2500,7 @@ header {
             </div>
             <div class="calc-field">
               <label>Phone Number</label>
-              <input type="tel" id="clientPhone" placeholder="e.g. 08012345678" maxlength="11" inputmode="numeric"/>
+              <input type="tel" id="clientPhone" placeholder="e.g. 09025902675" maxlength="11" inputmode="numeric"/>
               <div id="clientPhoneError" class="calc-field-err">⚠️ Must be exactly 11 digits</div>
             </div>
           </div>
@@ -2547,7 +2616,7 @@ header {
           <div class="calc-panel-head-icon">⚖️</div>
           <div>
             <div class="calc-panel-head-title">Adjustments</div>
-            <div class="calc-panel-head-sub">Deductions and advance payments</div>
+            <div class="calc-panel-head-sub">Deductions and Advance payments</div>
           </div>
         </div>
         <div class="calc-panel-body">
@@ -2612,7 +2681,7 @@ header {
         </div>
 
         <div class="calc-balance-wrap">
-          <div class="calc-balance-lbl">Balance Due</div>
+          <div class="calc-balance-lbl">TOTAL</div>
           <div class="calc-balance-val" id="sumTotal">₦0</div>
         </div>
 
@@ -9599,5 +9668,43 @@ function renderAnalysis() {
 })();
 </script>
 
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
 </body>
 </html>
