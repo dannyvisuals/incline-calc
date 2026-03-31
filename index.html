@@ -1824,6 +1824,72 @@ header {
   .anx-svc-bar-wrap { display: none; }
 }
 
+/* ── CALCULATOR DROPDOWN ── */
+@keyframes calcSlideIn {
+  from { opacity:0; transform:scale(0.88) translateY(-10px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+.calc-display-wrap {
+  padding:18px 18px 10px;
+  background:rgba(0,0,0,0.35);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.calc-expr {
+  font-size:11px;
+  color:rgba(16,185,129,0.55);
+  letter-spacing:0.5px;
+  min-height:16px;
+  text-align:right;
+  font-family:'DM Sans',sans-serif;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.calc-display {
+  font-family:'Cormorant Garamond','Georgia',serif;
+  font-size:38px;
+  font-weight:700;
+  color:#F0EAD6;
+  text-align:right;
+  line-height:1.15;
+  letter-spacing:-1px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.calc-display.has-error { color:#f87171; font-size:22px; }
+.calc-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  padding:12px;
+  background:#111a13;
+}
+.calc-btn {
+  border:none;
+  border-radius:12px;
+  padding:16px 6px;
+  font-size:18px;
+  font-weight:600;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  transition:transform 0.08s ease, filter 0.1s ease;
+  line-height:1;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.calc-btn:active { transform:scale(0.91); filter:brightness(1.3); }
+.calc-btn.num   { background:rgba(255,255,255,0.08); color:#F0EAD6; border:1px solid rgba(255,255,255,0.1); }
+.calc-btn.num:hover   { background:rgba(255,255,255,0.14); }
+.calc-btn.op    { background:rgba(16,185,129,0.15); color:#34D399; border:1px solid rgba(16,185,129,0.25); font-size:20px; }
+.calc-btn.op:hover    { background:rgba(16,185,129,0.28); }
+.calc-btn.eq    { background:linear-gradient(135deg,#059669,#10B981); color:#fff; border:none; box-shadow:0 4px 14px rgba(16,185,129,0.4); font-size:20px; }
+.calc-btn.eq:hover    { filter:brightness(1.12); }
+.calc-btn.clear { background:rgba(224,82,82,0.15); color:#f87171; border:1px solid rgba(224,82,82,0.25); }
+.calc-btn.clear:hover { background:rgba(224,82,82,0.28); }
+.calc-btn.func  { background:rgba(255,255,255,0.05); color:#bbb; border:1px solid rgba(255,255,255,0.08); font-size:15px; }
+.calc-btn.func:hover  { background:rgba(255,255,255,0.12); color:#F0EAD6; }
+.calc-btn.zero  { grid-column:span 2; text-align:left; padding-left:22px; }
 
 </style>
 </head>
@@ -1933,272 +1999,6 @@ header {
 </div>
 </header>
 
-<!-- ── CALCULATOR DROPDOWN ── -->
-<div id="calcDropdown" style="
-  display:none;
-  position:fixed;
-  top:90px;
-  right:calc(5% + 8px);
-  z-index:500;
-  width:300px;
-  background:#111a13;
-  border:1px solid rgba(16,185,129,0.25);
-  border-radius:20px;
-  box-shadow:0 24px 60px rgba(0,0,0,0.75),0 2px 0 rgba(16,185,129,0.1) inset;
-  overflow:hidden;
-  animation:calcSlideIn 0.22s cubic-bezier(0.34,1.3,0.64,1);
-  transform-origin:top right;
-">
-<style>
-@keyframes calcSlideIn {
-  from { opacity:0; transform:scale(0.88) translateY(-10px); }
-  to   { opacity:1; transform:scale(1)    translateY(0); }
-}
-.calc-display-wrap {
-  padding:18px 18px 10px;
-  background:rgba(0,0,0,0.35);
-  border-bottom:1px solid rgba(255,255,255,0.04);
-}
-.calc-expr {
-  font-size:11px;
-  color:rgba(16,185,129,0.5);
-  letter-spacing:0.5px;
-  min-height:16px;
-  text-align:right;
-  font-family:'DM Sans',sans-serif;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.calc-display {
-  font-family:'Cormorant Garamond','Georgia',serif;
-  font-size:38px;
-  font-weight:700;
-  color:#F0EAD6;
-  text-align:right;
-  line-height:1.15;
-  letter-spacing:-1px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.calc-display.has-error { color:#f87171; font-size:22px; }
-.calc-grid {
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:8px;
-  padding:12px;
-}
-.calc-btn {
-  border:none;
-  border-radius:12px;
-  padding:16px 6px;
-  font-size:16px;
-  font-weight:600;
-  cursor:pointer;
-  font-family:'DM Sans',sans-serif;
-  transition:transform 0.08s ease, filter 0.1s ease;
-  line-height:1;
-  user-select:none;
-  -webkit-tap-highlight-color:transparent;
-}
-.calc-btn:active { transform:scale(0.91); filter:brightness(1.25); }
-.calc-btn.num  { background:rgba(255,255,255,0.06); color:#F0EAD6; border:1px solid rgba(255,255,255,0.07); }
-.calc-btn.num:hover  { background:rgba(255,255,255,0.11); }
-.calc-btn.op   { background:rgba(16,185,129,0.12); color:#34D399; border:1px solid rgba(16,185,129,0.2); }
-.calc-btn.op:hover   { background:rgba(16,185,129,0.22); }
-.calc-btn.eq   { background:linear-gradient(135deg,#059669,#10B981); color:#fff; border:none;
-  box-shadow:0 4px 14px rgba(16,185,129,0.35); }
-.calc-btn.eq:hover   { filter:brightness(1.1); }
-.calc-btn.clear{ background:rgba(224,82,82,0.12); color:#f87171; border:1px solid rgba(224,82,82,0.2); }
-.calc-btn.clear:hover{ background:rgba(224,82,82,0.22); }
-.calc-btn.func { background:rgba(255,255,255,0.04); color:#aaa; border:1px solid rgba(255,255,255,0.06); font-size:13px; }
-.calc-btn.func:hover { background:rgba(255,255,255,0.09); color:#F0EAD6; }
-.calc-btn.zero { grid-column:span 2; }
-</style>
-
-<div class="calc-display-wrap">
-  <div class="calc-expr" id="calcExpr">&nbsp;</div>
-  <div class="calc-display" id="calcDisplay">0</div>
-</div>
-
-<div class="calc-grid">
-  <!-- Row 1 -->
-  <button class="calc-btn clear" onclick="calcAC()">AC</button>
-  <button class="calc-btn func"  onclick="calcToggleSign()">+/−</button>
-  <button class="calc-btn func"  onclick="calcPercent()">%</button>
-  <button class="calc-btn op"    onclick="calcOp('÷')">÷</button>
-  <!-- Row 2 -->
-  <button class="calc-btn num"   onclick="calcNum('7')">7</button>
-  <button class="calc-btn num"   onclick="calcNum('8')">8</button>
-  <button class="calc-btn num"   onclick="calcNum('9')">9</button>
-  <button class="calc-btn op"    onclick="calcOp('×')">×</button>
-  <!-- Row 3 -->
-  <button class="calc-btn num"   onclick="calcNum('4')">4</button>
-  <button class="calc-btn num"   onclick="calcNum('5')">5</button>
-  <button class="calc-btn num"   onclick="calcNum('6')">6</button>
-  <button class="calc-btn op"    onclick="calcOp('−')">−</button>
-  <!-- Row 4 -->
-  <button class="calc-btn num"   onclick="calcNum('1')">1</button>
-  <button class="calc-btn num"   onclick="calcNum('2')">2</button>
-  <button class="calc-btn num"   onclick="calcNum('3')">3</button>
-  <button class="calc-btn op"    onclick="calcOp('+')">+</button>
-  <!-- Row 5 -->
-  <button class="calc-btn num zero" onclick="calcNum('0')">0</button>
-  <button class="calc-btn num"   onclick="calcDot()">.</button>
-  <button class="calc-btn eq"    onclick="calcEquals()">=</button>
-</div>
-</div>
-
-<script>
-(function(){
-  var _cVal  = '0';    // current display value
-  var _cExpr = '';     // expression string shown above
-  var _cOp   = null;   // pending operator
-  var _cPrev = null;   // previous number
-  var _cFresh= false;  // next digit press starts fresh
-
-  function _disp() {
-    var el = document.getElementById('calcDisplay');
-    var ex = document.getElementById('calcExpr');
-    if (el) {
-      el.textContent = _cVal;
-      el.className = 'calc-display' + (_cVal === 'Error' ? ' has-error' : '');
-    }
-    if (ex) ex.textContent = _cExpr || '\u00a0';
-  }
-
-  function _fmt(n) {
-    // Show up to 10 sig digits, strip trailing zeros after decimal
-    if (!isFinite(n)) return 'Error';
-    var s = parseFloat(n.toPrecision(10)).toString();
-    return s;
-  }
-
-  window.calcNum = function(d) {
-    if (_cVal === 'Error') { calcAC(); }
-    if (_cFresh || _cVal === '0') {
-      _cVal = d; _cFresh = false;
-    } else {
-      if (_cVal.replace('-','').length >= 12) return;
-      _cVal += d;
-    }
-    _disp();
-  };
-
-  window.calcDot = function() {
-    if (_cFresh) { _cVal = '0'; _cFresh = false; }
-    if (!_cVal.includes('.')) _cVal += '.';
-    _disp();
-  };
-
-  window.calcOp = function(op) {
-    if (_cVal === 'Error') { calcAC(); return; }
-    if (_cOp && !_cFresh) {
-      // Chain: evaluate previous op first
-      calcEquals(true);
-    }
-    _cPrev = parseFloat(_cVal);
-    _cOp   = op;
-    _cExpr = _cVal + ' ' + op;
-    _cFresh = true;
-    _disp();
-  };
-
-  window.calcEquals = function(chain) {
-    if (_cOp === null || _cPrev === null) return;
-    var cur  = parseFloat(_cVal);
-    var res;
-    switch(_cOp) {
-      case '+': res = _cPrev + cur; break;
-      case '−': res = _cPrev - cur; break;
-      case '×': res = _cPrev * cur; break;
-      case '÷': res = cur === 0 ? NaN : _cPrev / cur; break;
-      default:  res = cur;
-    }
-    if (!isFinite(res)) {
-      _cExpr = _cVal + ' ' + _cOp + ' ' + cur + ' =';
-      _cVal  = 'Error';
-      _cOp   = null; _cPrev = null; _cFresh = true;
-    } else {
-      if (!chain) _cExpr = (_cExpr || _cPrev) + ' ' + _cVal + ' =';
-      _cVal  = _fmt(res);
-      if (!chain) { _cOp = null; _cPrev = null; }
-      else { _cPrev = res; }
-      _cFresh = true;
-    }
-    _disp();
-  };
-
-  window.calcAC = function() {
-    _cVal = '0'; _cExpr = ''; _cOp = null; _cPrev = null; _cFresh = false;
-    _disp();
-  };
-
-  window.calcToggleSign = function() {
-    if (_cVal === '0' || _cVal === 'Error') return;
-    _cVal = _cVal.startsWith('-') ? _cVal.slice(1) : '-' + _cVal;
-    _disp();
-  };
-
-  window.calcPercent = function() {
-    var n = parseFloat(_cVal);
-    if (!isFinite(n)) return;
-    _cVal = _fmt(n / 100);
-    _disp();
-  };
-
-  window.toggleCalcDropdown = function() {
-    var d = document.getElementById('calcDropdown');
-    var btn = document.getElementById('calcToggleBtn');
-    if (!d) return;
-    var open = d.style.display !== 'none';
-    if (open) {
-      d.style.display = 'none';
-      if (btn) btn.style.color = '';
-    } else {
-      d.style.display = 'block';
-      d.style.animation = 'none';
-      void d.offsetWidth;
-      d.style.animation = 'calcSlideIn 0.22s cubic-bezier(0.34,1.3,0.64,1)';
-      if (btn) btn.style.color = '#10B981';
-    }
-  };
-
-  // Close on outside click
-  document.addEventListener('click', function(e) {
-    var d   = document.getElementById('calcDropdown');
-    var btn = document.getElementById('calcToggleBtn');
-    if (!d || d.style.display === 'none') return;
-    if (!d.contains(e.target) && !btn.contains(e.target)) {
-      d.style.display = 'none';
-      if (btn) btn.style.color = '';
-    }
-  });
-
-  // Keyboard support when dropdown is open
-  document.addEventListener('keydown', function(e) {
-    var d = document.getElementById('calcDropdown');
-    if (!d || d.style.display === 'none') return;
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if ('0123456789'.includes(e.key)) { calcNum(e.key); e.preventDefault(); }
-    else if (e.key === '.')  { calcDot();        e.preventDefault(); }
-    else if (e.key === '+')  { calcOp('+');       e.preventDefault(); }
-    else if (e.key === '-')  { calcOp('−');       e.preventDefault(); }
-    else if (e.key === '*')  { calcOp('×');       e.preventDefault(); }
-    else if (e.key === '/')  { calcOp('÷');       e.preventDefault(); }
-    else if (e.key === 'Enter' || e.key === '=') { calcEquals(); e.preventDefault(); }
-    else if (e.key === 'Escape') { toggleCalcDropdown(); e.preventDefault(); }
-    else if (e.key === 'Backspace') {
-      if (_cVal.length > 1 && _cVal !== 'Error') { _cVal = _cVal.slice(0,-1); }
-      else { _cVal = '0'; }
-      document.getElementById('calcDisplay').textContent = _cVal;
-      e.preventDefault();
-    }
-  });
-})();
-</script>
-
 <!-- Tabs — separate bar below header, merges into header on scroll -->
 <div class="tabs" id="mainTabs">
   <div class="tab active" data-tab="calculator" title="Calculator">
@@ -2230,9 +2030,6 @@ header {
   </div>
 </div>
 </div><!-- end .header-sticky-wrap -->
-
-<!-- Material Icons stylesheet -->
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 
 
@@ -2277,7 +2074,7 @@ header {
     <!-- Totals -->
     <div class="thermal-totals">
       <div class="thermal-row"><span>SUBTOTAL:</span> <span id="receipt-subtotal"></span></div>
-      <div class="thermal-row" id="receipt-discount-row" style="display:none;"><span>DISCOUNT:</span> <span id="receipt-discount"></span></div>
+      <div class="thermal-row" id="receipt-discount-row" style="display:none;"><span>DEDUCTION:</span> <span id="receipt-discount"></span></div>
       <div class="thermal-row" id="receipt-deduction-row" style="display:none;"><span>LOAN DEDUCTION:</span> <span id="receipt-deduction"></span></div>
       <div class="thermal-row" id="receipt-advance-row" style="display:none;"><span>ADVANCE PAID:</span> <span id="receipt-advance"></span></div>
       <div class="thermal-divider-thick">━━━━━━━━━━━━━━━━━━━━</div>
@@ -2310,115 +2107,531 @@ header {
 
 <!-- CALCULATOR -->
 <div class="tab-content active" id="tab-calculator">
-<div class="container">
-  <!-- Top section: Staff info (full width) -->
-  <div class="card">
-    <div class="section-title">Staff Information</div>
+<style>
+/* ── CALCULATOR TAB REDESIGN ── */
+.calc-page { max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
 
-    <!-- Row 1: Staff Name + Phone -->
-    <div class="form-row">
-      <div class="form-group">
-        <label>Staff Name <span style="color:var(--red);font-size:10px;">*</span></label>
-        <div class="staff-autocomplete-wrap">
-          <input type="text" id="clientName" placeholder="e.g. Gerald Majella" autocomplete="off" oninput="calcValidateClearField(this,'clientName-err');"/>
-          <div id="clientName-err" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">⚠️ Staff name is required</div>
-          <div id="staffAcList" class="staff-autocomplete-list"></div>
-          <div id="staffAutofillBadge" style="display:none;" class="staff-autofill-badge">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Profile auto-filled
-            <span onclick="unlockCalcFields()" style="margin-left:6px;cursor:pointer;color:var(--red);font-size:9px;font-weight:700;letter-spacing:0.5px;opacity:0.8;" title="Clear and enter manually">✕ Change</span>
+/* Page header */
+.calc-page-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:28px; padding-bottom:20px;
+  border-bottom:1px solid rgba(16,185,129,0.12);
+}
+.calc-page-title {
+  font-family:'Cormorant Garamond','Georgia',serif;
+  font-size:32px; font-weight:700; color:var(--text); line-height:1;
+  letter-spacing:-0.5px;
+}
+.calc-page-title span { color:var(--gold); }
+.calc-page-sub { font-size:11px; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-top:4px; }
+.calc-receipt-num {
+  font-family:'Cormorant Garamond',serif;
+  font-size:13px; color:rgba(16,185,129,0.6);
+  background:rgba(16,185,129,0.06);
+  border:1px solid rgba(16,185,129,0.15);
+  border-radius:8px; padding:8px 16px;
+  letter-spacing:1px;
+}
+
+/* Two-column layout */
+.calc-layout { display:grid; grid-template-columns:1fr 320px; gap:22px; align-items:start; }
+@media (max-width:860px) { .calc-layout { grid-template-columns:1fr; } }
+
+/* Panels */
+.calc-panel {
+  background:rgba(18,26,19,0.85);
+  border:1px solid rgba(16,185,129,0.12);
+  border-radius:16px;
+  overflow:hidden;
+  margin-bottom:18px;
+  backdrop-filter:blur(8px);
+}
+.calc-panel-head {
+  padding:14px 20px;
+  display:flex; align-items:center; gap:10px;
+  background:rgba(16,185,129,0.04);
+  border-bottom:1px solid rgba(16,185,129,0.1);
+}
+.calc-panel-head-icon {
+  width:30px; height:30px; border-radius:8px;
+  background:rgba(16,185,129,0.12);
+  border:1px solid rgba(16,185,129,0.2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; flex-shrink:0;
+}
+.calc-panel-head-title {
+  font-size:13px; font-weight:700; color:var(--text);
+  letter-spacing:0.3px;
+}
+.calc-panel-head-sub {
+  font-size:10px; color:var(--text-muted); margin-top:1px;
+  letter-spacing:0.5px;
+}
+.calc-panel-body { padding:18px 20px; }
+
+/* Field groups */
+.calc-field-grid { display:grid; gap:14px; }
+.calc-field-grid.cols2 { grid-template-columns:1fr 1fr; }
+.calc-field-grid.cols3 { grid-template-columns:1fr 1fr 1fr; }
+@media (max-width:600px) {
+  .calc-field-grid.cols2, .calc-field-grid.cols3 { grid-template-columns:1fr; }
+}
+.calc-field { display:flex; flex-direction:column; gap:5px; }
+.calc-field label {
+  font-size:9px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:rgba(16,185,129,0.7);
+}
+.calc-field .req { color:var(--red); margin-left:2px; }
+.calc-field input,
+.calc-field select,
+.calc-field textarea {
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:10px;
+  color:var(--text);
+  padding:10px 13px;
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;
+  transition:border-color 0.2s, background 0.2s;
+  outline:none;
+}
+.calc-field input:focus,
+.calc-field select:focus,
+.calc-field textarea:focus {
+  border-color:rgba(16,185,129,0.45);
+  background:rgba(16,185,129,0.04);
+}
+.calc-field input.readonly-gold {
+  background:rgba(16,185,129,0.06);
+  color:var(--gold); font-weight:700;
+  border-color:rgba(16,185,129,0.2);
+  letter-spacing:1px; cursor:not-allowed;
+}
+.calc-field textarea { resize:vertical; min-height:80px; line-height:1.6; }
+.calc-field-err { font-size:10px; color:var(--red); margin-top:2px; display:none; }
+
+/* Divider */
+.calc-divider {
+  height:1px;
+  background:linear-gradient(90deg, transparent, rgba(16,185,129,0.15), transparent);
+  margin:4px 0 16px;
+}
+
+/* Status pills */
+.calc-status-wrap { display:flex; gap:7px; flex-wrap:wrap; padding:4px 0; }
+.calc-status-pill {
+  padding:7px 16px; border-radius:30px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:transparent; color:var(--text-muted);
+  cursor:pointer; font-size:11px; font-weight:600;
+  font-family:'DM Sans',sans-serif;
+  transition:all 0.18s; letter-spacing:0.3px;
+}
+.calc-status-pill:hover { background:rgba(255,255,255,0.05); color:var(--text); }
+.calc-status-pill.active-pending  { border-color:#fbbf24; color:#fbbf24; background:rgba(251,191,36,0.1); }
+.calc-status-pill.active-progress { border-color:#a78bfa; color:#a78bfa; background:rgba(167,139,250,0.1); }
+.calc-status-pill.active-ready    { border-color:var(--green); color:var(--green); background:rgba(16,185,129,0.1); }
+.calc-status-pill.active-delivered{ border-color:#60a5fa; color:#60a5fa; background:rgba(96,165,250,0.1); }
+.calc-status-pill.active-cancelled{ border-color:var(--red); color:var(--red); background:rgba(224,82,82,0.1); }
+
+/* Service rows */
+.calc-svc-head {
+  display:grid; grid-template-columns:1fr 70px 110px 36px;
+  gap:8px; padding:6px 12px 8px;
+  font-size:9px; font-weight:700; letter-spacing:1.2px;
+  text-transform:uppercase; color:rgba(16,185,129,0.5);
+}
+.calc-svc-row {
+  display:grid; grid-template-columns:1fr 70px 110px 36px;
+  gap:8px; align-items:center;
+  background:rgba(255,255,255,0.025);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:10px; padding:10px 12px;
+  margin-bottom:7px;
+  animation:slideIn 0.18s ease;
+  transition:border-color 0.15s;
+}
+.calc-svc-row:hover { border-color:rgba(16,185,129,0.2); }
+.calc-svc-row select,
+.calc-svc-row input[type=number] {
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:8px;
+  color:var(--text); font-size:13px;
+  padding:8px 10px; outline:none;
+  font-family:'DM Sans',sans-serif;
+  transition:border-color 0.15s;
+}
+.calc-svc-row select:focus,
+.calc-svc-row input:focus { border-color:rgba(16,185,129,0.35); }
+.calc-svc-price {
+  font-family:'Cormorant Garamond',serif;
+  font-size:16px; font-weight:700;
+  color:var(--gold); text-align:right;
+}
+.calc-svc-remove {
+  background:none; border:1px solid rgba(224,82,82,0.25);
+  color:rgba(224,82,82,0.5); border-radius:7px;
+  width:32px; height:32px; cursor:pointer; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+}
+.calc-svc-remove:hover { background:rgba(224,82,82,0.1); border-color:var(--red); color:var(--red); }
+.calc-add-svc-btn {
+  width:100%; padding:12px;
+  background:rgba(16,185,129,0.04);
+  border:1px dashed rgba(16,185,129,0.25);
+  border-radius:10px; color:rgba(16,185,129,0.7);
+  cursor:pointer; font-size:13px; font-weight:600;
+  font-family:'DM Sans',sans-serif;
+  transition:all 0.18s; margin-top:4px;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.calc-add-svc-btn:hover {
+  background:rgba(16,185,129,0.1);
+  border-color:rgba(16,185,129,0.5);
+  color:var(--green);
+  border-style:solid;
+}
+
+/* Adjustments */
+.calc-adj-row {
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+}
+
+/* ── SUMMARY PANEL ── */
+.calc-summary-sticky { position:sticky; top:100px; }
+.calc-summary-card {
+  background:linear-gradient(145deg, #0d1a10 0%, #111a13 60%, #0e1810 100%);
+  border:1px solid rgba(16,185,129,0.2);
+  border-radius:18px; overflow:hidden;
+  box-shadow:0 20px 50px rgba(0,0,0,0.5), 0 1px 0 rgba(16,185,129,0.15) inset;
+}
+.calc-summary-header {
+  padding:20px 22px 16px;
+  border-bottom:1px solid rgba(16,185,129,0.1);
+  background:rgba(16,185,129,0.04);
+}
+.calc-summary-label {
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(16,185,129,0.55); margin-bottom:6px;
+}
+.calc-summary-receipt-no {
+  font-family:'Cormorant Garamond',serif;
+  font-size:15px; color:var(--text); font-weight:600;
+}
+.calc-sum-rows { padding:16px 22px; display:flex; flex-direction:column; gap:0; }
+.calc-sum-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:13px;
+}
+.calc-sum-row:last-child { border:none; }
+.calc-sum-row-lbl { color:var(--text-muted); }
+.calc-sum-row-val { font-weight:600; color:var(--text); }
+.calc-sum-row-val.red  { color:#f87171; }
+.calc-sum-row-val.green{ color:var(--green); }
+
+.calc-balance-wrap {
+  margin:0 22px 20px;
+  padding:18px;
+  background:rgba(16,185,129,0.06);
+  border:1px solid rgba(16,185,129,0.18);
+  border-radius:12px;
+  text-align:center;
+}
+.calc-balance-lbl {
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(16,185,129,0.55); margin-bottom:6px;
+}
+.calc-balance-val {
+  font-family:'Cormorant Garamond','Georgia',serif;
+  font-size:44px; font-weight:700; color:var(--gold);
+  line-height:1; letter-spacing:-1px;
+}
+
+.calc-summary-btns { padding:0 16px 18px; display:flex; flex-direction:column; gap:8px; }
+.calc-btn-print {
+  width:100%; padding:14px;
+  background:linear-gradient(135deg, #059669 0%, #10B981 50%, #34D399 100%);
+  border:none; border-radius:12px;
+  color:#fff; font-size:14px; font-weight:700;
+  font-family:'DM Sans',sans-serif; cursor:pointer;
+  letter-spacing:0.5px;
+  box-shadow:0 8px 24px rgba(16,185,129,0.3);
+  transition:all 0.2s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.calc-btn-print:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 12px 30px rgba(16,185,129,0.4); }
+.calc-btn-save {
+  width:100%; padding:13px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px; color:var(--text-muted);
+  font-size:13px; font-weight:600;
+  font-family:'DM Sans',sans-serif; cursor:pointer;
+  transition:all 0.18s;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.calc-btn-save:hover { background:rgba(255,255,255,0.09); color:var(--text); }
+
+/* autofill badge */
+.staff-autofill-badge {
+  display:none; align-items:center; gap:6px;
+  background:rgba(16,185,129,0.08);
+  border:1px solid rgba(16,185,129,0.2);
+  border-radius:6px; padding:5px 10px;
+  font-size:11px; color:var(--green);
+  font-weight:500; margin-top:5px;
+}
+</style>
+
+<div class="calc-page">
+
+  <!-- Page header -->
+  <div class="calc-page-header">
+    <div>
+      <div class="calc-page-title">New <span>Order</span></div>
+      <div class="calc-page-sub">Inclineworks International · Admin Panel</div>
+    </div>
+    <div class="calc-receipt-num" id="calcHeaderReceiptNo">Receipt #—</div>
+  </div>
+
+  <div class="calc-layout">
+
+    <!-- ── LEFT COLUMN ── -->
+    <div>
+
+      <!-- Staff Info -->
+      <div class="calc-panel">
+        <div class="calc-panel-head">
+          <div class="calc-panel-head-icon">👤</div>
+          <div>
+            <div class="calc-panel-head-title">Staff Information</div>
+            <div class="calc-panel-head-sub">Who is this order for?</div>
+          </div>
+        </div>
+        <div class="calc-panel-body">
+
+          <!-- Name + Phone -->
+          <div class="calc-field-grid cols2" style="margin-bottom:14px;">
+            <div class="calc-field">
+              <label>Staff Name <span class="req">*</span></label>
+              <div class="staff-autocomplete-wrap">
+                <input type="text" id="clientName" placeholder="e.g. Gerald Majella" autocomplete="off" oninput="calcValidateClearField(this,'clientName-err');"/>
+                <div id="clientName-err" class="calc-field-err">⚠️ Staff name is required</div>
+                <div id="staffAcList" class="staff-autocomplete-list"></div>
+                <div id="staffAutofillBadge" class="staff-autofill-badge">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Profile auto-filled
+                  <span onclick="unlockCalcFields()" style="margin-left:6px;cursor:pointer;color:var(--red);font-size:9px;font-weight:700;opacity:0.8;" title="Clear">✕ Change</span>
+                </div>
+              </div>
+            </div>
+            <div class="calc-field">
+              <label>Phone Number</label>
+              <input type="tel" id="clientPhone" placeholder="e.g. 08012345678" maxlength="11" inputmode="numeric"/>
+              <div id="clientPhoneError" class="calc-field-err">⚠️ Must be exactly 11 digits</div>
+            </div>
+          </div>
+
+          <div class="calc-divider"></div>
+
+          <!-- Staff ID + Task ID + Dates in 3-col -->
+          <div class="calc-field-grid cols2" style="margin-bottom:14px;">
+            <div class="calc-field">
+              <label>Staff ID</label>
+              <input type="text" id="staffId" value="IW-ADM-001" readonly class="readonly-gold"/>
+            </div>
+            <div class="calc-field">
+              <label>Task ID <span style="font-size:9px;color:rgba(255,255,255,0.2);text-transform:none;letter-spacing:0;">(6 chars)</span></label>
+              <input type="text" id="taskId" placeholder="e.g. AB12CD" maxlength="6"
+                style="text-transform:uppercase;letter-spacing:2px;font-weight:600;"
+                oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,6);calcValidateClearField(this,'taskId-err');updateTaskIdCounter();"/>
+              <div style="display:flex;justify-content:space-between;margin-top:2px;">
+                <div id="taskId-err" class="calc-field-err">⚠️ Must be 6 alphanumeric characters</div>
+                <div id="taskIdCounter" style="font-size:10px;color:var(--text-muted);margin-left:auto;">0 / 6</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="calc-field-grid cols2" style="margin-bottom:0;">
+            <div class="calc-field">
+              <label>Order Date <span class="req">*</span></label>
+              <input type="date" id="orderDate" oninput="calcValidateClearField(this,'orderDate-err');"/>
+              <div id="orderDate-err" class="calc-field-err">⚠️ Order date is required</div>
+            </div>
+            <div class="calc-field">
+              <label>Due / Delivery Date <span class="req">*</span></label>
+              <input type="date" id="dueDate" oninput="calcValidateClearField(this,'dueDate-err');"/>
+              <div id="dueDate-err" class="calc-field-err">⚠️ Due date is required</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Bank Details -->
+      <div class="calc-panel">
+        <div class="calc-panel-head">
+          <div class="calc-panel-head-icon">🏦</div>
+          <div>
+            <div class="calc-panel-head-title">Bank Details</div>
+            <div class="calc-panel-head-sub">Payment destination</div>
+          </div>
+        </div>
+        <div class="calc-panel-body">
+          <div class="calc-field-grid cols2" style="margin-bottom:14px;">
+            <div class="calc-field">
+              <label>Bank Name</label>
+              <input type="text" id="staffBankName" placeholder="e.g. Access Bank"/>
+            </div>
+            <div class="calc-field">
+              <label>Account Number</label>
+              <input type="text" id="staffAccountNumber" placeholder="0123456789" maxlength="10" inputmode="numeric"/>
+              <div id="accountNumberError" class="calc-field-err">⚠️ Must be exactly 10 digits</div>
+            </div>
+          </div>
+          <div class="calc-field">
+            <label>Account Name</label>
+            <input type="text" id="staffAccountName" placeholder="e.g. Gerald Majella"/>
           </div>
         </div>
       </div>
-      <div class="form-group"><label>Phone Number <span style="color:var(--text-muted);font-size:9px;letter-spacing:0;text-transform:none;">(11 digits)</span></label><input type="tel" id="clientPhone" placeholder="e.g. 08064338888" maxlength="11" inputmode="numeric"/><div id="clientPhoneError" style="font-size:11px;color:var(--red);margin-top:4px;display:none;">⚠️ Must be exactly 11 digits</div></div>
-    </div>
 
-    <!-- Row 2: Staff ID + Task ID -->
-    <div class="form-row">
-      <div class="form-group"><label>Staff ID</label><input type="text" id="staffId" value="IW-ADM-001" readonly style="background:var(--surface3);color:var(--gold);font-weight:700;cursor:not-allowed;border-color:rgba(16,185,129,0.3);letter-spacing:1px;"/></div>
-      <div class="form-group">
-        <label>Task ID <span style="color:var(--text-muted);font-size:9px;letter-spacing:0;text-transform:none;">(6 characters)</span></label>
-        <input type="text" id="taskId" placeholder="e.g. AB12CD" maxlength="6" style="text-transform:uppercase;letter-spacing:2px;font-weight:600;"
-          oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,6);calcValidateClearField(this,'taskId-err');updateTaskIdCounter();"
-        />
-        <div style="display:flex;justify-content:space-between;margin-top:3px;">
-          <div id="taskId-err" style="font-size:11px;color:var(--red);display:none;">⚠️ Must be exactly 6 alphanumeric characters</div>
-          <div id="taskIdCounter" style="font-size:10px;color:var(--text-muted);margin-left:auto;">0 / 6</div>
+      <!-- Task Status -->
+      <div class="calc-panel">
+        <div class="calc-panel-head">
+          <div class="calc-panel-head-icon">📌</div>
+          <div>
+            <div class="calc-panel-head-title">Task Status</div>
+            <div class="calc-panel-head-sub">Current stage of this order</div>
+          </div>
+        </div>
+        <div class="calc-panel-body">
+          <div class="calc-status-wrap" id="statusRow">
+            <button class="calc-status-pill status-btn active active-pending" data-status="Pending">⏳ Pending</button>
+            <button class="calc-status-pill status-btn active-progress" data-status="In Progress">🧵 In Progress</button>
+            <button class="calc-status-pill status-btn active-ready" data-status="Ready">✅ Ready</button>
+            <button class="calc-status-pill status-btn active-delivered" data-status="Delivered">📦 Delivered</button>
+            <button class="calc-status-pill status-btn active-cancelled" data-status="Cancelled">❌ Cancelled</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Row 3: Date + Due Date -->
-    <div class="form-row">
-      <div class="form-group"><label>Date <span style="color:var(--red);font-size:10px;">*</span></label><input type="date" id="orderDate" oninput="calcValidateClearField(this,'orderDate-err');"/><div id="orderDate-err" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">⚠️ Order date is required</div></div>
-      <div class="form-group"><label>Due / Delivery Date <span style="color:var(--red);font-size:10px;">*</span></label><input type="date" id="dueDate" oninput="calcValidateClearField(this,'dueDate-err');"/><div id="dueDate-err" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">⚠️ Due date is required</div></div>
-    </div>
-
-    <!-- Row 4: Bank Name + Account Number -->
-    <div class="form-row">
-      <div class="form-group"><label>Bank Name</label><input type="text" id="staffBankName" placeholder="e.g. Access Bank, GTBank, First Bank"/></div>
-      <div class="form-group"><label>Account Number <span style="color:var(--text-muted);font-size:9px;letter-spacing:0;text-transform:none;">(10 digits)</span></label><input type="text" id="staffAccountNumber" placeholder="e.g. 0123456789" maxlength="10" inputmode="numeric"/><div id="accountNumberError" style="font-size:11px;color:var(--red);margin-top:4px;display:none;">⚠️ Must be exactly 10 digits</div></div>
-    </div>
-
-    <!-- Row 5: Account Name (full) -->
-    <div class="form-row">
-      <div class="form-group full"><label>Account Name</label><input type="text" id="staffAccountName" placeholder="e.g. Gerald Majella"/></div>
-    </div>
-
-    <!-- Row 6: Description (full) -->
-    <div class="form-row">
-      <div class="form-group full"><label>Description</label>
-        <textarea id="orderNotes" placeholder="e.g. Chest: 40in, Waist: 34in, special instructions..."></textarea>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">Task Status</div>
-    <div class="status-row" id="statusRow">
-      <button class="status-btn active" data-status="Pending">⏳ Pending</button>
-      <button class="status-btn" data-status="In Progress">🧵 In Progress</button>
-      <button class="status-btn" data-status="Ready">✅ Ready</button>
-      <button class="status-btn" data-status="Delivered">📦 Delivered</button>
-      <button class="status-btn" data-status="Cancelled">❌ Cancelled</button>
-    </div>
-  </div>
-
-  <!-- Bottom section: Services + Summary side by side -->
-  <div class="grid">
-    <div>
-      <div class="card">
-        <div class="section-title">Tailoring Services</div>
-        <div class="svc-header">
-          <span>Service</span><span>Qty</span><span style="text-align:right">Subtotal</span><span></span>
+      <!-- Services -->
+      <div class="calc-panel">
+        <div class="calc-panel-head">
+          <div class="calc-panel-head-icon">🧵</div>
+          <div>
+            <div class="calc-panel-head-title">Tailoring Services</div>
+            <div class="calc-panel-head-sub">Add all items for this order</div>
+          </div>
         </div>
-        <div id="servicesContainer"></div>
-        <button class="add-row-btn" id="addServiceBtn">+ Add Service</button>
-      </div>
-
-      <div class="card">
-        <div class="section-title">Adjustments</div>
-        <div class="form-row">
-          <div class="form-group"><label> Loan Deduction (₦)</label><input type="number" id="discountAmt" placeholder="0" min="0"/></div>
-          <div class="form-group"><label>Advance Paid (₦)</label><input type="number" id="depositPaid" placeholder="0" min="0"/></div>
+        <div class="calc-panel-body">
+          <div class="calc-svc-head">
+            <span>Service</span><span style="text-align:center;">Qty</span><span style="text-align:right;">Subtotal</span><span></span>
+          </div>
+          <div id="servicesContainer"></div>
+          <button class="calc-add-svc-btn" id="addServiceBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Service
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="summary-panel">
-      <div class="summary-card">
-        <div class="section-title">Summary</div>
-        <div class="sum-line"><span class="sum-label">Total Items</span><span id="sumItems">0</span></div>
-        <div class="sum-line"><span class="sum-label">Sub-total</span><span id="sumSubtotal">₦0</span></div>
-        <div class="sum-line"><span class="sum-label">Loan Deduction</span><span id="sumDeduction" style="color:var(--red)">−₦0</span></div>
-        <div class="sum-line"><span class="sum-label">Advance Paid</span><span id="sumAdvancepaid" style="color:var(--green)">₦0</span></div>
-        <div class="sum-line total"><span>Balance</span><span id="sumTotal">₦0</span></div>
+      <!-- Adjustments -->
+      <div class="calc-panel">
+        <div class="calc-panel-head">
+          <div class="calc-panel-head-icon">⚖️</div>
+          <div>
+            <div class="calc-panel-head-title">Adjustments</div>
+            <div class="calc-panel-head-sub">Deductions and advance payments</div>
+          </div>
+        </div>
+        <div class="calc-panel-body">
+          <div class="calc-adj-row">
+            <div class="calc-field">
+              <label>Loan Deduction (₦)</label>
+              <input type="number" id="discountAmt" placeholder="0" min="0"/>
+            </div>
+            <div class="calc-field">
+              <label>Advance Paid (₦)</label>
+              <input type="number" id="depositPaid" placeholder="0" min="0"/>
+            </div>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-gold" style="width:100%;padding:13px;font-size:15px;margin-bottom:10px" onclick="printThermalReceipt()">🖨 Print Receipt</button>
-      <button class="btn btn-ghost" style="width:100%;padding:13px;font-size:15px" id="clearBtn">🗑 Clear Form</button>
-    </div>
-  </div>
-</div>
+
+      <!-- Notes -->
+      <div class="calc-panel">
+        <div class="calc-panel-head">
+          <div class="calc-panel-head-icon">📝</div>
+          <div>
+            <div class="calc-panel-head-title">Description / Notes</div>
+            <div class="calc-panel-head-sub">Measurements, instructions, extras</div>
+          </div>
+        </div>
+        <div class="calc-panel-body">
+          <div class="calc-field">
+            <label>Notes</label>
+            <textarea id="orderNotes" placeholder="e.g. Chest: 40in, Waist: 34in, Hip: 42in — special instructions..."></textarea>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end left column -->
+
+    <!-- ── RIGHT COLUMN — SUMMARY ── -->
+    <div class="calc-summary-sticky">
+      <div class="calc-summary-card">
+
+        <div class="calc-summary-header">
+          <div class="calc-summary-label">Live Invoice</div>
+          <div class="calc-summary-receipt-no" id="summaryReceiptNo">Receipt #—</div>
+        </div>
+
+        <div class="calc-sum-rows">
+          <div class="calc-sum-row">
+            <span class="calc-sum-row-lbl">Items</span>
+            <span class="calc-sum-row-val" id="sumItems">0</span>
+          </div>
+          <div class="calc-sum-row">
+            <span class="calc-sum-row-lbl">Subtotal</span>
+            <span class="calc-sum-row-val" id="sumSubtotal">₦0</span>
+          </div>
+          <div class="calc-sum-row">
+            <span class="calc-sum-row-lbl">Loan Deduction</span>
+            <span class="calc-sum-row-val red" id="sumDeduction">−₦0</span>
+          </div>
+          <div class="calc-sum-row">
+            <span class="calc-sum-row-lbl">Advance Paid</span>
+            <span class="calc-sum-row-val green" id="sumAdvancepaid">₦0</span>
+          </div>
+        </div>
+
+        <div class="calc-balance-wrap">
+          <div class="calc-balance-lbl">Balance Due</div>
+          <div class="calc-balance-val" id="sumTotal">₦0</div>
+        </div>
+
+        <div class="calc-summary-btns">
+          <button class="calc-btn-print" onclick="printThermalReceipt()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Print Receipt
+          </button>
+          <button class="calc-btn-save" id="clearBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Clear Form
+          </button>
+        </div>
+
+      </div>
+    </div><!-- end right column -->
+
+  </div><!-- end calc-layout -->
+</div><!-- end calc-page -->
 </div>
 
 <!-- ORDERS -->
@@ -3743,6 +3956,9 @@ $(function(){
 
   $('#orderDate').val(new Date().toISOString().slice(0,10));
   addServiceRow();
+  // Show next receipt number in header
+  const _initRec = getNextReceiptNumber();
+  $('#calcHeaderReceiptNo, #summaryReceiptNo').text('Receipt ' + _initRec);
 
   // ── One-time migration: push existing localStorage data to Supabase ──
   async function migrateLocalToSupabase() {
@@ -4433,9 +4649,12 @@ function _renderSalaryFromCache() {
   search = search.toLowerCase();
   var filtered = staff.filter(function(s){ return !search || (s.name||'').toLowerCase().includes(search) || (s.staffId||'').toLowerCase().includes(search); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
   var grandTotal = allSalaries.reduce(function(t,e){ return t+(e.amount||0); },0);
-  var thisMonth  = allSalaries.filter(function(e){ return e.date_paid && e.date_paid.slice(0,7)===new Date().toISOString().slice(0,7); });
+  var _nowC = new Date();
+  var _ymC  = _nowC.getFullYear() + '-' + String(_nowC.getMonth()+1).padStart(2,'0');
+  var _monthLblC = _nowC.toLocaleString('en-GB',{month:'long',year:'numeric'}).toUpperCase();
+  var thisMonth  = allSalaries.filter(function(e){ return e.date_paid && e.date_paid.slice(0,7)===_ymC; });
   var monthTotal = thisMonth.reduce(function(t,e){ return t+(e.amount||0); },0);
-  if (strip) strip.innerHTML = '<div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">All-Time Paid</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--green);">₦'+grandTotal.toLocaleString()+'</div></div><div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">This Month</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--gold);">₦'+monthTotal.toLocaleString()+'</div></div><div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">Staff Count</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--text);">'+staff.length+'</div></div>';
+  if (strip) strip.innerHTML = '<div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">All-Time Paid</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--green);">₦'+grandTotal.toLocaleString()+'</div></div><div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">'+_monthLblC+'</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--gold);">₦'+monthTotal.toLocaleString()+'</div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">'+thisMonth.length+' payment'+(thisMonth.length!==1?'s':'')+' this month</div></div><div class="sal-stat-box"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">Staff Count</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:var(--text);">'+staff.length+'</div></div>';
   grid.innerHTML = filtered.map(function(s){
     var entries = allSalaries.filter(function(e){ return e.staff_id === s.staffId; });
     var totalPaid = entries.reduce(function(sum,e){ return sum+(e.amount||0); },0);
@@ -4583,11 +4802,11 @@ function triggerRowCalc(row) {
 
 function addServiceRow() {
   const row = $(`
-    <div class="svc-row">
+    <div class="calc-svc-row">
       <select class="svc-select">${buildOptions('')}</select>
       <input type="number" class="svc-qty" value="1" min="1" max="9999"/>
-      <div class="price-display">₦0</div>
-      <button class="remove-btn" title="Remove">✕</button>
+      <div class="price-display calc-svc-price">₦0</div>
+      <button class="calc-svc-remove remove-btn" title="Remove">✕</button>
     </div>
   `);
   row.find('.svc-select, .svc-qty').on('change input', () => { triggerRowCalc(row); calcTotals(); });
@@ -4598,7 +4817,7 @@ function addServiceRow() {
 
 function calcTotals() {
   let subtotal = 0, items = 0;
-  $('#servicesContainer .svc-row').each(function(){
+  $('#servicesContainer .calc-svc-row').each(function(){
     const name = $(this).find('.svc-select').val();
     const qty = parseInt($(this).find('.svc-qty').val()) || 0;
     const svc = SERVICES.find(s => s.name === name);
@@ -4630,7 +4849,7 @@ function getNextReceiptNumber() {
 
 function collectForm() {
   const services = [];
-  $('#servicesContainer .svc-row').each(function(){
+  $('#servicesContainer .calc-svc-row').each(function(){
     const name = $(this).find('.svc-select').val();
     const qty = parseInt($(this).find('.svc-qty').val()) || 0;
     const svc = SERVICES.find(s => s.name === name);
@@ -4640,8 +4859,11 @@ function collectForm() {
   const subtotal = services.reduce((a,s) => a+s.price, 0);
   const discount = parseFloat($('#discountAmt').val()) || 0;
   const deposit = parseFloat($('#depositPaid').val()) || 0;
+  const recNo = getNextReceiptNumber();
+  // Update header receipt number displays
+  $('#calcHeaderReceiptNo, #summaryReceiptNo').text('Receipt ' + recNo);
   return {
-    id: Date.now(), receiptNumber: getNextReceiptNumber(), date: new Date().toISOString(),
+    id: Date.now(), receiptNumber: recNo, date: new Date().toISOString(),
     clientName: $('#clientName').val().trim(),
     clientPhone: $('#clientPhone').val().trim(),
     orderDate: $('#orderDate').val(), dueDate: $('#dueDate').val(),
@@ -4999,13 +5221,16 @@ let _sosAllOrders = [];
 function renderOrdersTableUnfiltered() {
   const orders = getOrders();
   if (!orders.length) return;
+  const staffProfiles = getStaffProfiles();
   const groups = {};
   orders.forEach(o => {
-    const name = (o.clientName || 'Unknown').trim();
+    const raw = (o.clientName || 'Unknown').trim();
+    // Resolve to the canonical (capitalised) name from staff profiles if possible
+    const profile = staffProfiles.find(s => (s.name||'').toLowerCase().trim() === raw.toLowerCase().trim());
+    const name = profile ? profile.name : raw;
     if (!groups[name]) groups[name] = [];
     groups[name].push(o);
   });
-  const staffProfiles = getStaffProfiles();
   const sortedNames = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
   let html = `<div class="staff-cards-grid">`;
   sortedNames.forEach(name => {
@@ -5052,7 +5277,10 @@ function renderOrdersTable() {
   // group by staff name, apply search/filter
   const groups = {};
   orders.forEach(o => {
-    const name = (o.clientName || 'Unknown').trim();
+    const raw = (o.clientName || 'Unknown').trim();
+    // Resolve to canonical (capitalised) name from staff profiles to prevent duplicate cards
+    const profile = activeStaff.find(s => (s.name||'').toLowerCase().trim() === raw.toLowerCase().trim() || (o.staffId && s.staffId === o.staffId));
+    const name = profile ? profile.name : raw;
     // Only hard-filter by registered staff when staff list is loaded AND has > 0 members
     if (activeStaff.length > 0) {
       const nameTrim = name.toLowerCase().trim();
@@ -5364,11 +5592,11 @@ function opEditResend() {
   if (svcs.length) {
     svcs.forEach(function(sv) {
       const row = $(`
-        <div class="svc-row">
+        <div class="calc-svc-row">
           <select class="svc-select">${buildOptions(sv.name)}</select>
           <input type="number" class="svc-qty" value="${sv.qty || 1}" min="1" max="9999"/>
-          <div class="price-display">₦0</div>
-          <button class="remove-btn" title="Remove">✕</button>
+          <div class="price-display calc-svc-price">₦0</div>
+          <button class="calc-svc-remove remove-btn" title="Remove">✕</button>
         </div>
       `);
       row.find('.svc-select, .svc-qty').on('change input', () => { triggerRowCalc(row); calcTotals(); });
@@ -5917,18 +6145,18 @@ function renderProfileView(id) {
     const isCredit = p.type === 'credit';
     const _d = new Date(p.date);
     const dateStr = _d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-    // Show time only if the stored date includes a time component (ISO string)
     const hasTime = p.date && p.date.includes('T');
     const timeStr = hasTime ? _d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
     const rowBg = i % 2 === 0 ? 'background:rgba(255,255,255,0.01);' : '';
     txHtml += `
-      <div style="display:grid;grid-template-columns:110px 1fr 120px 120px 130px 36px;align-items:center;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.04);${rowBg}transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.03)'" onmouseleave="this.style.background='${i%2===0?'rgba(255,255,255,0.01)':'transparent'}'">
+      <div style="display:grid;grid-template-columns:110px 1fr 120px 120px 130px 70px;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.04);${rowBg}transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.03)'" onmouseleave="this.style.background='${i%2===0?'rgba(255,255,255,0.01)':'transparent'}'">
         <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">${dateStr}${timeStr ? '<br><span style=\"font-size:10px;color:var(--gold);font-weight:600;\">⏱ ' + timeStr + '</span>' : ''}</div>
         <div style="font-size:13px;color:var(--text);padding-right:12px;">${p.note||'Transaction'}</div>
         <div style="text-align:right;font-size:13px;font-weight:600;color:${isCredit?'var(--green)':'transparent'};">${isCredit?'₦'+p.amount.toLocaleString():'—'}</div>
         <div style="text-align:right;font-size:13px;font-weight:600;color:${!isCredit?'var(--red)':'transparent'};">${!isCredit?'₦'+p.amount.toLocaleString():'—'}</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:${p.running>0?'var(--text)':'var(--green)'};">₦${p.running.toLocaleString()}</div>
-        <div style="text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;align-items:center;">
+          <button onclick="openEditTx(${id},${i})" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:rgba(16,185,129,0.7);cursor:pointer;font-size:11px;padding:3px 7px;border-radius:5px;line-height:1;transition:all 0.15s;" onmouseenter="this.style.background='rgba(16,185,129,0.18)';this.style.color='var(--green)'" onmouseleave="this.style.background='rgba(16,185,129,0.08)';this.style.color='rgba(16,185,129,0.7)'">✏️</button>
           <button onclick="deleteTx(${id},${i})" style="background:none;border:none;color:rgba(224,82,82,0.3);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px;line-height:1;transition:color 0.2s;" onmouseenter="this.style.color='var(--red)'" onmouseleave="this.style.color='rgba(224,82,82,0.3)'">✕</button>
         </div>
       </div>
@@ -6004,6 +6232,105 @@ function pvUseInCalc() {
 }
 
 // ── Delete single transaction ──
+// ── Edit a specific transaction inside a loan profile ──
+var _editTxDebtId = null;
+var _editTxIdx    = null;
+
+function openEditTx(debtId, txIdx) {
+  const debt = getManualDebts().find(d => d.id === debtId);
+  if (!debt) return;
+  const tx = (debt.payments || [])[txIdx];
+  if (!tx) return;
+
+  _editTxDebtId = debtId;
+  _editTxIdx    = txIdx;
+
+  // Type label
+  const isCredit = tx.type === 'credit';
+  document.getElementById('etx-type-label').textContent =
+    (isCredit ? '📥 CREDIT — Loan Issued' : '📤 DEBIT — Repayment') +
+    '  ·  Loan ID #' + debtId;
+
+  // Populate fields
+  document.getElementById('etx-amount').value = tx.amount || '';
+  document.getElementById('etx-note').value   = tx.note   || '';
+
+  // Split ISO date into date + time parts
+  if (tx.date) {
+    const hasTime = tx.date.includes('T');
+    document.getElementById('etx-date').value = tx.date.slice(0, 10);
+    document.getElementById('etx-time').value = hasTime ? tx.date.slice(11, 16) : '';
+  } else {
+    document.getElementById('etx-date').value = '';
+    document.getElementById('etx-time').value = '';
+  }
+
+  document.getElementById('editTxModal').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('etx-amount').focus(); }, 80);
+}
+
+function closeEditTx() {
+  document.getElementById('editTxModal').style.display = 'none';
+  _editTxDebtId = null;
+  _editTxIdx    = null;
+}
+
+function saveEditTx() {
+  const amount = parseFloat(document.getElementById('etx-amount').value);
+  if (!amount || amount <= 0) { showToast('⚠️ Enter a valid amount'); return; }
+
+  const dateVal = document.getElementById('etx-date').value;
+  const timeVal = document.getElementById('etx-time').value;
+  const note    = document.getElementById('etx-note').value.trim();
+
+  if (!dateVal) { showToast('⚠️ Pick a date'); return; }
+
+  const newDate = timeVal ? dateVal + 'T' + timeVal : dateVal;
+
+  const btn = document.getElementById('etxSaveBtn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  const debts = getManualDebts();
+  const debt  = debts.find(d => d.id === _editTxDebtId);
+  if (!debt) { btn.textContent = '💾 Save Changes'; btn.disabled = false; return; }
+
+  const tx = (debt.payments || [])[_editTxIdx];
+  if (!tx) { btn.textContent = '💾 Save Changes'; btn.disabled = false; return; }
+
+  const oldAmount = tx.amount;
+  const diff      = amount - oldAmount;  // positive = increased, negative = decreased
+
+  // Update the transaction
+  tx.amount = amount;
+  tx.date   = newDate;
+  tx.note   = note || tx.note;
+
+  // Recalculate loan balance from all transactions from scratch
+  let bal = 0;
+  (debt.payments || []).forEach(p => {
+    if (p.type === 'credit') bal += p.amount;
+    else bal -= p.amount;
+  });
+  debt.balance = Math.max(0, bal);
+  debt.status  = debt.balance <= 0 ? 'Paid' : 'Outstanding';
+
+  localStorage.setItem('incline_manual_debts', JSON.stringify(debts));
+  sbUpdateLoan(debt).catch(e => console.error('Tx edit sync failed:', e));
+
+  closeEditTx();
+  renderProfileView(_editTxDebtId || debt.id);
+  renderOutstandingTable();
+  updateAlumniBadge();
+  btn.textContent = '💾 Save Changes'; btn.disabled = false;
+  showToast('✅ Transaction updated!');
+}
+
+// Close on backdrop click
+document.addEventListener('DOMContentLoaded', function() {
+  var etxModal = document.getElementById('editTxModal');
+  if (etxModal) etxModal.addEventListener('click', function(e){ if(e.target===this) closeEditTx(); });
+});
+
 async function deleteTx(debtId, txIdx) {
   var _rt = await showConfirm({
     title: 'Remove Transaction?',
@@ -6880,6 +7207,7 @@ function renderAlumniTable() {
         </div>
         <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--surface3);">
           <button class="tbl-btn" onclick="viewDebt(${d.id})">👁 View Profile</button>
+          <button class="tbl-btn" style="color:var(--gold);border-color:rgba(16,185,129,0.3);" onclick="openEditDebt(${d.id})">✏️ Edit</button>
           <button class="tbl-btn" style="background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3);" onclick="reactivateDebt(${d.id})">🔄 Re-Activate Loan</button>
           <button class="tbl-btn danger" onclick="permanentDeleteDebt(${d.id})">🗑 Delete</button>
         </div>
@@ -8290,6 +8618,59 @@ if ('serviceWorker' in navigator) {
 </div>
 
 
+<!-- EDIT TRANSACTION MODAL -->
+<div id="editTxModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);z-index:9500;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border:1px solid rgba(16,185,129,0.3);border-radius:18px;max-width:420px;width:100%;animation:modalIn 0.22s ease;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="padding:16px 22px;border-bottom:1px solid var(--surface3);display:flex;justify-content:space-between;align-items:center;background:var(--surface);">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);">✏️ Edit Transaction</div>
+        <div id="etx-type-label" style="font-size:11px;color:var(--text-muted);margin-top:2px;letter-spacing:0.5px;"></div>
+      </div>
+      <button onclick="closeEditTx()" style="background:none;border:none;color:var(--text-muted);font-size:26px;cursor:pointer;line-height:1;">&#215;</button>
+    </div>
+
+    <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Amount -->
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;">Amount (₦)</label>
+        <input type="number" id="etx-amount" min="0" placeholder="0"
+          style="width:100%;box-sizing:border-box;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);background:var(--surface2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;outline:none;"/>
+      </div>
+
+      <!-- Date + Time side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;">Date</label>
+          <input type="date" id="etx-date"
+            style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:10px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;">Time <span style="text-transform:none;font-weight:400;color:rgba(255,255,255,0.25);">(optional)</span></label>
+          <input type="time" id="etx-time"
+            style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:10px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;">Note / Description</label>
+        <input type="text" id="etx-note" placeholder="e.g. Salary advance, Repayment..."
+          style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:10px;padding:10px 14px;font-size:13px;outline:none;font-family:inherit;"/>
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="closeEditTx()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;">Cancel</button>
+        <button onclick="saveEditTx()" id="etxSaveBtn" style="flex:2;padding:12px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#0a0f0a;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;">💾 Save Changes</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- CUSTOM CONFIRM MODAL -->
 <div id="confirmModal" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;padding:20px;">
   <div id="confirmBackdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);" onclick="_confirmReject()"></div>
@@ -8411,9 +8792,12 @@ function _drawSalaryGrid() {
 
   const allSalaries = _allSalariesCache;
 
-  // Summary strip
+  // Summary strip — use local date (not UTC) so Nigeria UTC+1 doesn't mismatch
+  const _now      = new Date();
+  const _ym       = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0');
+  const _monthLbl = _now.toLocaleString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
   const grandTotal = allSalaries.reduce((s, e) => s + (e.amount || 0), 0);
-  const thisMonth  = allSalaries.filter(e => e.date_paid && e.date_paid.slice(0,7) === new Date().toISOString().slice(0,7));
+  const thisMonth  = allSalaries.filter(e => e.date_paid && e.date_paid.slice(0,7) === _ym);
   const monthTotal = thisMonth.reduce((s, e) => s + (e.amount || 0), 0);
   if (strip) strip.innerHTML = `
     <div class="sal-stat-box">
@@ -8421,8 +8805,9 @@ function _drawSalaryGrid() {
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--green);">₦${grandTotal.toLocaleString()}</div>
     </div>
     <div class="sal-stat-box">
-      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">This Month</div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">${_monthLbl}</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);">₦${monthTotal.toLocaleString()}</div>
+      <div style="font-size:9px;color:var(--text-muted);margin-top:3px;">${thisMonth.length} payment${thisMonth.length !== 1 ? 's' : ''} this month</div>
     </div>
     <div class="sal-stat-box">
       <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.7);margin-bottom:6px;">Staff Count</div>
@@ -9071,6 +9456,147 @@ function renderAnalysis() {
     }
   });
 }
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     CALCULATOR DROPDOWN — lives at body level so it is
+     never clipped by the sticky header's mask-image
+     ══════════════════════════════════════════════════════ -->
+<div id="calcDropdown" style="display:none;position:fixed;top:90px;right:calc(5% + 8px);z-index:9998;width:300px;background:#111a13;border:1px solid rgba(16,185,129,0.28);border-radius:20px;box-shadow:0 28px 70px rgba(0,0,0,0.85),0 2px 0 rgba(16,185,129,0.12) inset;overflow:hidden;transform-origin:top right;">
+  <div class="calc-display-wrap">
+    <div class="calc-expr" id="calcExpr">&nbsp;</div>
+    <div class="calc-display" id="calcDisplay">0</div>
+  </div>
+  <div class="calc-grid">
+    <button class="calc-btn clear" onclick="calcAC()">AC</button>
+    <button class="calc-btn func"  onclick="calcToggleSign()">+/−</button>
+    <button class="calc-btn func"  onclick="calcPercent()">%</button>
+    <button class="calc-btn op"    onclick="calcOp('÷')">÷</button>
+    <button class="calc-btn num"   onclick="calcNum('7')">7</button>
+    <button class="calc-btn num"   onclick="calcNum('8')">8</button>
+    <button class="calc-btn num"   onclick="calcNum('9')">9</button>
+    <button class="calc-btn op"    onclick="calcOp('×')">×</button>
+    <button class="calc-btn num"   onclick="calcNum('4')">4</button>
+    <button class="calc-btn num"   onclick="calcNum('5')">5</button>
+    <button class="calc-btn num"   onclick="calcNum('6')">6</button>
+    <button class="calc-btn op"    onclick="calcOp('−')">−</button>
+    <button class="calc-btn num"   onclick="calcNum('1')">1</button>
+    <button class="calc-btn num"   onclick="calcNum('2')">2</button>
+    <button class="calc-btn num"   onclick="calcNum('3')">3</button>
+    <button class="calc-btn op"    onclick="calcOp('+')">+</button>
+    <button class="calc-btn num zero" onclick="calcNum('0')">0</button>
+    <button class="calc-btn num"   onclick="calcDot()">.</button>
+    <button class="calc-btn eq"    onclick="calcEquals()">=</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var _cVal='0', _cExpr='', _cOp=null, _cPrev=null, _cFresh=false;
+
+  function _disp(){
+    var el=document.getElementById('calcDisplay');
+    var ex=document.getElementById('calcExpr');
+    if(el){ el.textContent=_cVal; el.className='calc-display'+(_cVal==='Error'?' has-error':''); }
+    if(ex) ex.textContent=_cExpr||'\u00a0';
+  }
+  function _fmt(n){
+    if(!isFinite(n)) return 'Error';
+    return parseFloat(n.toPrecision(10)).toString();
+  }
+
+  window.calcNum=function(d){
+    if(_cVal==='Error') calcAC();
+    if(_cFresh||_cVal==='0'){ _cVal=d; _cFresh=false; }
+    else{ if(_cVal.replace('-','').length>=12) return; _cVal+=d; }
+    _disp();
+  };
+  window.calcDot=function(){
+    if(_cFresh){_cVal='0';_cFresh=false;}
+    if(!_cVal.includes('.')) _cVal+='.';
+    _disp();
+  };
+  window.calcOp=function(op){
+    if(_cVal==='Error'){calcAC();return;}
+    if(_cOp&&!_cFresh) calcEquals(true);
+    _cPrev=parseFloat(_cVal); _cOp=op; _cExpr=_cVal+' '+op; _cFresh=true;
+    _disp();
+  };
+  window.calcEquals=function(chain){
+    if(_cOp===null||_cPrev===null) return;
+    var cur=parseFloat(_cVal), res;
+    switch(_cOp){
+      case '+': res=_cPrev+cur; break;
+      case '−': res=_cPrev-cur; break;
+      case '×': res=_cPrev*cur; break;
+      case '÷': res=cur===0?NaN:_cPrev/cur; break;
+      default:  res=cur;
+    }
+    if(!isFinite(res)){
+      _cExpr=_cVal+' '+_cOp+' '+cur+' ='; _cVal='Error';
+      _cOp=null; _cPrev=null; _cFresh=true;
+    } else {
+      if(!chain) _cExpr=(_cExpr||_cPrev)+' '+_cVal+' =';
+      _cVal=_fmt(res);
+      if(!chain){_cOp=null;_cPrev=null;} else _cPrev=res;
+      _cFresh=true;
+    }
+    _disp();
+  };
+  window.calcAC=function(){
+    _cVal='0';_cExpr='';_cOp=null;_cPrev=null;_cFresh=false; _disp();
+  };
+  window.calcToggleSign=function(){
+    if(_cVal==='0'||_cVal==='Error') return;
+    _cVal=_cVal.startsWith('-')?_cVal.slice(1):'-'+_cVal; _disp();
+  };
+  window.calcPercent=function(){
+    var n=parseFloat(_cVal); if(!isFinite(n)) return;
+    _cVal=_fmt(n/100); _disp();
+  };
+  window.toggleCalcDropdown=function(){
+    var d=document.getElementById('calcDropdown');
+    var btn=document.getElementById('calcToggleBtn');
+    if(!d) return;
+    var open=d.style.display!=='none';
+    if(open){
+      d.style.display='none';
+      if(btn){btn.style.color='';btn.style.background='';}
+    } else {
+      d.style.display='block';
+      d.style.animation='none'; void d.offsetWidth;
+      d.style.animation='calcSlideIn 0.22s cubic-bezier(0.34,1.3,0.64,1)';
+      if(btn){btn.style.color='#10B981';btn.style.background='rgba(16,185,129,0.12)';}
+    }
+  };
+  document.addEventListener('click',function(e){
+    var d=document.getElementById('calcDropdown');
+    var btn=document.getElementById('calcToggleBtn');
+    if(!d||d.style.display==='none') return;
+    if(!d.contains(e.target)&&btn&&!btn.contains(e.target)){
+      d.style.display='none';
+      if(btn){btn.style.color='';btn.style.background='';}
+    }
+  });
+  document.addEventListener('keydown',function(e){
+    var d=document.getElementById('calcDropdown');
+    if(!d||d.style.display==='none') return;
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if('0123456789'.includes(e.key)){calcNum(e.key);e.preventDefault();}
+    else if(e.key==='.'){calcDot();e.preventDefault();}
+    else if(e.key==='+'){calcOp('+');e.preventDefault();}
+    else if(e.key==='-'){calcOp('−');e.preventDefault();}
+    else if(e.key==='*'){calcOp('×');e.preventDefault();}
+    else if(e.key==='/'){calcOp('÷');e.preventDefault();}
+    else if(e.key==='Enter'||e.key==='='){calcEquals();e.preventDefault();}
+    else if(e.key==='Escape'){toggleCalcDropdown();e.preventDefault();}
+    else if(e.key==='Backspace'){
+      if(_cVal.length>1&&_cVal!=='Error') _cVal=_cVal.slice(0,-1); else _cVal='0';
+      document.getElementById('calcDisplay').textContent=_cVal;
+      e.preventDefault();
+    }
+  });
+})();
 </script>
 
 </body>
