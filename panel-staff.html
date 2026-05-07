@@ -1,0 +1,358 @@
+<div class="tab-panel" id="panel-staff">
+<div class="admin-wrap" style="max-width:860px;">
+
+  <!-- Intro Banner -->
+  <div class="staff-intro-banner">
+    <div class="staff-intro-banner-icon">👥</div>
+    <div class="staff-intro-banner-text">
+      <strong>Staff Management</strong> — Add staff members, upload their photos, and manage their profiles.
+      All records sync to the cloud automatically.
+    </div>
+  </div>
+
+  <!-- Add Staff Form (borderless) -->
+  <div class="staff-add-card" style="border:none;background:transparent;padding:0 0 24px;">
+    <div class="staff-add-card-header" onclick="toggleAddStaffForm()" style="cursor:pointer;user-select:none;padding:14px 18px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.12);border-radius:12px;margin-bottom:0;">
+      <div class="staff-add-card-header-icon" id="addStaffToggleIcon" style="transition:transform 0.3s ease;"><i class="fa-solid fa-user-plus" style="font-size:16px;color:rgba(16,185,129,0.8);"></i></div>
+      <div style="flex:1;">
+        <div class="staff-add-card-header-title">Add New Staff Member</div>
+        <div class="staff-add-card-header-sub"></div>
+      </div>
+      <i id="addStaffChevron" class="fa-solid fa-chevron-down" style="color:rgba(255,255,255,0.3);transition:transform 0.3s;"></i>
+    </div>
+
+    <div id="addStaffFormBody" style="display:none;margin-top:2px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-top:none;border-radius:0 0 12px 12px;padding:20px 20px 16px;">
+    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+
+      <!-- Photo upload circle -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+        <div class="photo-upload-circle" id="addStaffPhotoCircle" style="width:68px;height:68px;" onclick="document.getElementById('addStaffPhotoInput').click()" title="Click to upload photo">
+          <div id="addStaffPhotoPreview" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <i class="fas fa-user" style="font-size:18px;color:rgba(16,185,129,0.5);"></i>
+            <span style="font-size:7px;color:rgba(16,185,129,0.5);letter-spacing:0.5px;">ADD PHOTO</span>
+          </div>
+        </div>
+        <input type="file" id="addStaffPhotoInput" accept="image/*" style="display:none;" onchange="previewAddStaffPhoto(this)"/>
+        <button onclick="clearAddStaffPhoto()" style="font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0;">Clear</button>
+      </div>
+
+      <!-- Input fields -->
+      <div style="flex:1;min-width:240px;">
+
+        <!-- Section: Identity -->
+        <div class="staff-form-section">
+          <div class="staff-section-label">Identity &amp; Access</div>
+          <div class="staff-form-grid">
+            <div class="form-group" style="margin:0;">
+              <label>Full Name <span style="color:var(--red);">✦</span></label>
+              <input type="text" id="newStaffName" placeholder="e.g. Samuel Tom" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Staff ID <span style="color:var(--red);">✦</span></label>
+              <input type="text" id="newStaffStaffId" placeholder="e.g. IW-001" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Password <span style="color:var(--red);">✦</span></label>
+              <div style="position:relative;">
+                <input type="password" id="newStaffPassword" placeholder="Staff login password" oninput="staffFieldClear(this);" style="width:100%;padding-right:40px;box-sizing:border-box;"/>
+                <button type="button" onclick="var i=document.getElementById('newStaffPassword');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈';" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);padding:0;line-height:1;">👁</button>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Phone Number</label>
+              <input type="tel" id="newStaffPhone" placeholder="e.g. 0901 100 9089" maxlength="11" inputmode="numeric" oninput="staffFieldClear(this);"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Work -->
+        <div class="staff-form-section">
+          <div class="staff-section-label">Work Details</div>
+          <div class="staff-form-grid">
+            <div class="form-group" style="margin:0;">
+              <label>Position / Role</label>
+              <input type="text" id="newStaffPosition" placeholder="e.g. Senior Tailor" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Department</label>
+              <input type="text" id="newStaffDept" placeholder="e.g. Cutting, Sewing" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Gender</label>
+              <div style="display:flex;gap:10px;margin-top:4px;">
+                <button type="button" id="genderMale" onclick="setGender('Male')" style="flex:1;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">Male</button>
+                <button type="button" id="genderFemale" onclick="setGender('Female')" style="flex:1;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">Female</button>
+              </div>
+              <input type="hidden" id="newStaffGender" value=""/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Date Started Work</label>
+              <input type="date" id="newStaffStartDate" oninput="staffFieldClear(this);"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Next of Kin & Guarantor -->
+        <div class="staff-form-section">
+          <div class="staff-section-label">Next of Kin &amp; Guarantor</div>
+          <div class="staff-form-grid">
+            <div class="form-group" style="margin:0;">
+              <label>Next of Kin Name</label>
+              <input type="text" id="newStaffNokName" placeholder="e.g. Mary Tom" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Next of Kin Phone</label>
+              <input type="tel" id="newStaffNokPhone" placeholder="e.g. 08012345678" maxlength="11" inputmode="numeric" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Guarantor Name</label>
+              <input type="text" id="newStaffGuarantorName" placeholder="e.g. John Doe" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Guarantor Phone</label>
+              <input type="tel" id="newStaffGuarantorPhone" placeholder="e.g. 07098765432" maxlength="11" inputmode="numeric" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group full" style="margin:0;">
+              <label>Location (Work / Home)</label>
+              <input type="text" id="newStaffLocation" placeholder="e.g. Shop 5, Rumuola Plaza, Port Harcourt" oninput="staffFieldClear(this);"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Bank -->
+        <div class="staff-form-section">
+          <div class="staff-section-label">Bank Details</div>
+          <div class="staff-form-grid">
+            <div class="form-group" style="margin:0;">
+              <label>Bank Name</label>
+              <input type="text" id="newStaffBankName" placeholder="e.g. Access Bank" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Account Number</label>
+              <input type="text" id="newStaffAccountNumber" placeholder="e.g. 0123456789" maxlength="10" inputmode="numeric" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group full" style="margin:0;">
+              <label>Account Name</label>
+              <input type="text" id="newStaffAccountName" placeholder="e.g. Samuel Tom" oninput="staffFieldClear(this);"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Personal & Location -->
+        <div class="staff-form-section">
+          <div class="staff-section-label">Personal &amp; Location</div>
+          <div class="staff-form-grid">
+            <div class="form-group" style="margin:0;">
+              <label>Date of Birth</label>
+              <input type="date" id="newStaffDOB" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Age</label>
+              <input type="number" id="newStaffAge" placeholder="e.g. 25" min="16" max="80" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group full" style="margin:0;">
+              <label>Residential Address</label>
+              <input type="text" id="newStaffResidence" placeholder="e.g. 12 Rumuola Road, Port Harcourt" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>State of Origin</label>
+              <input type="text" id="newStaffState" placeholder="e.g. Rivers State" oninput="staffFieldClear(this);"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Local Government Area</label>
+              <input type="text" id="newStaffLGA" placeholder="e.g. Obio-Akpor" oninput="staffFieldClear(this);"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,0.12);">
+          <button class="btn btn-gold" onclick="addStaff()" style="width:100%;padding:10px;font-size:13px;border-radius:10px;letter-spacing:0.5px;">
+            ✦ Add Staff Member
+          </button>
+        </div>
+
+      </div>
+    </div>
+    </div><!-- end addStaffFormBody -->
+  </div>
+
+  <!-- Staff list header -->
+  <div class="staff-list-header">
+    <div class="staff-list-header-label">Current Staffs</div>
+    <div id="staffCountBadge" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:var(--gold);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;">0 members</div>
+  </div>
+
+  <!-- Staff list -->
+  <div id="adminStaffList"></div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     EDIT STAFF MODAL
+══════════════════════════════════════ -->
+<div id="editStaffModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);padding:16px;">
+  <div style="background:linear-gradient(145deg,#0e1a10,#111827);border:1px solid rgba(16,185,129,0.2);border-radius:22px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,0.8);">
+
+    <!-- Modal header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;background:linear-gradient(145deg,#0e1a10,#111827);z-index:1;border-radius:22px 22px 0 0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <!-- Avatar preview -->
+        <div id="editStaffAvatarPreview" onclick="document.getElementById('editStaffPhotoInput').click()" title="Click to change photo"
+          style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(5,50,25,0.8));border:2px solid rgba(16,185,129,0.35);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--green);flex-shrink:0;overflow:hidden;cursor:pointer;"></div>
+        <input type="file" id="editStaffPhotoInput" accept="image/*" style="display:none;" onchange="previewEditPhoto(this)"/>
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);">Edit Staff Profile</div>
+          <div style="font-size:10px;color:rgba(16,185,129,0.6);margin-top:2px;letter-spacing:1px;">Click avatar to change photo</div>
+        </div>
+      </div>
+      <button onclick="closeEditStaff()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseenter="this.style.background='rgba(224,82,82,0.15)';this.style.color='var(--red)'" onmouseleave="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text-muted)'">✕</button>
+    </div>
+
+    <!-- Form body -->
+    <div style="padding:20px 24px 24px;">
+      <input type="hidden" id="editStaffId"/>
+      <input type="hidden" id="editStaffOriginalStaffId"/>
+
+      <!-- Identity -->
+      <div class="staff-form-section">
+        <div class="staff-section-label">Identity &amp; Access</div>
+        <div class="staff-form-grid">
+          <div class="form-group" style="margin:0;">
+            <label>Full Name ✦</label>
+            <input type="text" id="editStaffName" placeholder="Full Name"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Staff ID ✦</label>
+            <input type="text" id="editStaffStaffId" placeholder="e.g. IW-001"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Password</label>
+            <div style="position:relative;">
+              <input type="text" id="editStaffPassword" placeholder="Current password shown here" style="width:100%;padding-right:40px;box-sizing:border-box;font-family:monospace;letter-spacing:0.5px;"/>
+              <button type="button" id="editPassToggle" onclick="toggleEditPassVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;color:var(--text-muted);padding:0;line-height:1;">👁</button>
+            </div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.28);margin-top:4px;">Leave unchanged to keep current password.</div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Phone Number</label>
+            <input type="tel" id="editStaffPhone" placeholder="e.g. 08012345678" maxlength="11" inputmode="numeric"/>
+            <div id="edit-phone-error" style="display:none;font-size:10px;color:var(--red);margin-top:4px;">Must be exactly 11 digits</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Work -->
+      <div class="staff-form-section">
+        <div class="staff-section-label">Work Details</div>
+        <div class="staff-form-grid">
+          <div class="form-group" style="margin:0;">
+            <label>Position / Role</label>
+            <input type="text" id="editStaffPosition" placeholder="e.g. Senior Tailor"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Department</label>
+            <input type="text" id="editStaffDept" placeholder="e.g. Cutting, Sewing"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Gender</label>
+            <div style="display:flex;gap:10px;margin-top:4px;">
+              <button type="button" id="editGenderMale" onclick="setEditGender('Male')" style="flex:1;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">Male</button>
+              <button type="button" id="editGenderFemale" onclick="setEditGender('Female')" style="flex:1;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">Female</button>
+            </div>
+            <input type="hidden" id="editStaffGender" value=""/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Date Started Work</label>
+            <input type="date" id="editStaffStartDate"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next of Kin & Guarantor -->
+      <div class="staff-form-section">
+        <div class="staff-section-label">Next of Kin &amp; Guarantor</div>
+        <div class="staff-form-grid">
+          <div class="form-group" style="margin:0;">
+            <label>Next of Kin Name</label>
+            <input type="text" id="editStaffNokName" placeholder="e.g. Mary Tom"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Next of Kin Phone</label>
+            <input type="tel" id="editStaffNokPhone" placeholder="e.g. 08012345678" maxlength="11" inputmode="numeric"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Guarantor Name</label>
+            <input type="text" id="editStaffGuarantorName" placeholder="e.g. John Doe"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Guarantor Phone</label>
+            <input type="tel" id="editStaffGuarantorPhone" placeholder="e.g. 07098765432" maxlength="11" inputmode="numeric"/>
+          </div>
+          <div class="form-group full" style="margin:0;">
+            <label>Location (Work / Home)</label>
+            <input type="text" id="editStaffLocation" placeholder="e.g. Shop 5, Rumuola Plaza, Port Harcourt"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bank -->
+      <div class="staff-form-section">
+        <div class="staff-section-label">Bank Details</div>
+        <div class="staff-form-grid">
+          <div class="form-group" style="margin:0;">
+            <label>Bank Name</label>
+            <input type="text" id="editStaffBank" placeholder="e.g. Access Bank"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Account Number</label>
+            <input type="text" id="editStaffAcctNum" placeholder="e.g. 0123456789" maxlength="10" inputmode="numeric"/>
+          </div>
+          <div class="form-group full" style="margin:0;">
+            <label>Account Name</label>
+            <input type="text" id="editStaffAcctName" placeholder="e.g. Samuel Tom"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal -->
+      <div class="staff-form-section">
+        <div class="staff-section-label">Personal &amp; Location</div>
+        <div class="staff-form-grid">
+          <div class="form-group" style="margin:0;">
+            <label>Date of Birth</label>
+            <input type="date" id="editStaffDOB"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Age</label>
+            <input type="number" id="editStaffAge" placeholder="e.g. 25" min="16" max="80"/>
+          </div>
+          <div class="form-group full" style="margin:0;">
+            <label>Residential Address</label>
+            <input type="text" id="editStaffResidence" placeholder="e.g. 12 Rumuola Road, Port Harcourt"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>State of Origin</label>
+            <input type="text" id="editStaffState" placeholder="e.g. Rivers State"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Local Government Area</label>
+            <input type="text" id="editStaffLGA" placeholder="e.g. Obio-Akpor"/>
+          </div>
+          <div class="form-group full" style="margin:0;">
+            <label>Bio / Notes</label>
+            <textarea id="editStaffBio" placeholder="Any additional notes about this staff member…" style="height:70px;resize:vertical;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <button onclick="closeEditStaff()" style="flex:1;padding:13px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background='rgba(255,255,255,0.04)'">Cancel</button>
+        <button id="editStaffSaveBtn" onclick="saveEditStaff()" style="flex:2;padding:13px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;border-radius:12px;color:#0a0f0a;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;letter-spacing:0.4px;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.9'" onmouseleave="this.style.opacity='1'">💾 Save Changes</button>
+      </div>
+    </div>
+
+  </div>
+</div>

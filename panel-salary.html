@@ -1,0 +1,182 @@
+<div class="tab-panel" id="panel-salary">
+
+  <!-- SCREEN 1: Staff Grid -->
+  <div id="salary-main-screen">
+  <div class="container">
+
+    <!-- Page Header -->
+    <div class="salary-page-header">
+      <div>
+        <div class="salary-header-title">Staff <em>Salary</em></div>
+        <div class="salary-header-sub">Payment Records &amp; History</div>
+      </div>
+      <div class="salary-header-actions">
+
+        <div class="salary-search-wrap">
+          <span class="task-search-icon">🔍</span>
+          <input type="text" id="salarySearch" placeholder="Search staff..." oninput="_drawSalaryGrid()" class="salary-search-input"/>
+        </div>
+        <!-- Grid-level select mode for sending receipts -->
+        <button id="sal-grid-select-btn" class="salary-export-btn" style="gap:6px;display:flex;align-items:center;">
+          <i class="fas fa-square-check" style="font-size:14px;"></i>
+          Select
+        </button>
+        <button id="sal-grid-pdf-btn" style="display:none;align-items:center;gap:6px;padding:8px 16px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:var(--green);border-radius:50px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;letter-spacing:0.3px;">
+          <i class="fas fa-file" style="font-size:13px;"></i>
+          Send PDF Receipt
+        </button>
+        <button onclick="exportSalaryExcel()" class="salary-export-btn">
+          <span style="font-size:15px;">📊</span> Export Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary strip -->
+    <div id="salary-summary-strip" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;"></div>
+
+    <!-- Staff grid -->
+    <div id="salaryStaffGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;"></div>
+
+  </div><!-- /.container -->
+  </div><!-- /#salary-main-screen -->
+
+  <!-- SCREEN 2: Salary Profile -->
+  <div id="salary-profile-screen" style="display:none;">
+  <div class="container" style="max-width:680px;">
+
+    <!-- Hero header -->
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,0.08) 0%,rgba(16,185,129,0.02) 100%);border:1px solid rgba(16,185,129,0.12);border-radius:20px;padding:22px 20px;margin-bottom:16px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(16,185,129,0.12),transparent 70%);border-radius:50%;pointer-events:none;"></div>
+      <button onclick="closeSalaryProfile()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);border-radius:50px;padding:7px 16px;font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;"
+        onmouseenter="this.style.borderColor='rgba(16,185,129,0.4)';this.style.color='var(--text)'"
+        onmouseleave="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--text-muted)'">
+        <span style="font-size:14px;">←</span> All Staff
+      </button>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div id="sp-avatar" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(16,185,129,0.1));border:2px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--green);flex-shrink:0;overflow:hidden;"></div>
+        <div>
+          <div id="sp-name" style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.1;"></div>
+          <div id="sp-meta" style="font-size:11px;color:var(--text-muted);margin-top:3px;text-transform:uppercase;letter-spacing:1.2px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surface);border:1px solid rgba(16,185,129,0.15);border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.6);margin-bottom:6px;">Total Paid</div>
+        <div id="sp-total" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--green);line-height:1;"></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(201,168,76,0.15);border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.6);margin-bottom:6px;">Payments</div>
+        <div id="sp-count" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);line-height:1;"></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.6);margin-bottom:6px;">Last Paid</div>
+        <div id="sp-last" style="font-size:12px;font-weight:600;color:var(--text);margin-top:2px;line-height:1.3;"></div>
+      </div>
+    </div>
+
+    <!-- Add / Edit payment form -->
+    <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px;margin-bottom:16px;">
+      <!-- Form header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));border:1px solid rgba(16,185,129,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;">💳</div>
+          <div>
+            <div id="sp-form-title" style="font-size:14px;font-weight:700;color:var(--text);">New Payment</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">All fields are required</div>
+          </div>
+        </div>
+        <button id="sp-cancel-btn" onclick="cancelEditSalary()" style="display:none;background:rgba(224,82,82,0.1);border:1px solid rgba(224,82,82,0.2);color:var(--red);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;">✕ Cancel</button>
+      </div>
+
+      <!-- Amount — full width, prominent -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Amount (₦) <span style="color:var(--red);">*</span></label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--green);font-family:'Cormorant Garamond',serif;">₦</span>
+          <input type="number" id="sp-amount" min="0" placeholder="0.00"
+            style="width:100%;background:rgba(16,185,129,0.05);border:1.5px solid rgba(16,185,129,0.2);color:var(--text);border-radius:12px;padding:13px 14px 13px 32px;font-size:18px;font-weight:700;font-family:'Cormorant Garamond',serif;outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='rgba(16,185,129,0.6)'" onblur="this.style.borderColor='rgba(16,185,129,0.2)'"/>
+        </div>
+      </div>
+
+      <!-- Type selector — pill buttons -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Salary Type <span style="color:var(--red);">*</span></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="sp-type-pills">
+          <button type="button" onclick="setSalaryType('Monthly',this)" class="stype-pill active-pill" data-val="Monthly">Monthly</button>
+          <button type="button" onclick="setSalaryType('Weekly',this)" class="stype-pill" data-val="Weekly">Weekly</button>
+          <button type="button" onclick="setSalaryType('Daily',this)" class="stype-pill" data-val="Daily">Daily</button>
+          <button type="button" onclick="setSalaryType('Bonus',this)" class="stype-pill" data-val="Bonus">Bonus</button>
+          <button type="button" onclick="setSalaryType('Advance',this)" class="stype-pill" data-val="Advance">Advance</button>
+          <button type="button" onclick="setSalaryType('Other',this)" class="stype-pill" data-val="Other">Other</button>
+        </div>
+        <input type="hidden" id="sp-type" value="Monthly"/>
+      </div>
+
+      <!-- Date + Time -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Date Paid <span style="color:var(--red);">*</span></label>
+          <input type="date" id="sp-date" class="sal-input"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Time Paid <span style="color:var(--red);">*</span></label>
+          <input type="time" id="sp-time" class="sal-input"/>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Notes <span style="color:var(--red);">*</span></label>
+        <input type="text" id="sp-notes" placeholder="e.g. March salary payment..." class="sal-input"/>
+      </div>
+
+      <!-- Save button -->
+      <button onclick="saveSalaryEntry()" id="sp-save-btn"
+        style="width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#0a0f0a;border:none;border-radius:12px;cursor:pointer;font-size:14px;font-weight:700;font-family:inherit;letter-spacing:0.5px;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;"
+        onmouseenter="this.style.opacity='0.9'" onmouseleave="this.style.opacity='1'">
+        <span style="font-size:16px;">💾</span> Save Payment
+      </button>
+    </div>
+
+    <!-- Payment history -->
+    <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;">🗂</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">Payment History</div>
+            <div id="sp-history-count" style="font-size:10px;color:var(--text-muted);margin-top:1px;"></div>
+          </div>
+        </div>
+        <!-- Bulk actions -->
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="_toggleSalarySelectMode()" id="sp-select-btn" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);border-radius:50px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;letter-spacing:0.3px;"
+            onmouseenter="this.style.borderColor='rgba(16,185,129,0.4)';this.style.color='var(--text)'"
+            onmouseleave="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--text-muted)'">
+            <i class="fas fa-square-check" style="font-size:12px;"></i>
+            Select
+          </button>
+          <button id="sp-pdf-btn" onclick="_exportSelectedSalaryPDF()" style="display:none;align-items:center;gap:6px;padding:8px 14px;background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.3);color:#f87171;border-radius:50px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;">
+            <i class="fas fa-file" style="font-size:12px;"></i>
+            Export PDF
+          </button>
+        </div>
+      </div>
+      <!-- Select all row (hidden until select mode) -->
+      <div id="sp-select-all-row" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text);">
+          <input type="checkbox" id="sp-select-all-cb" onchange="_salarySelectAll(this.checked)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;"/>
+          Select All Payments
+        </label>
+        <span id="sp-selected-count" style="font-size:11px;color:var(--text-muted);font-weight:600;"></span>
+      </div>
+      <div id="sp-history"></div>
+    </div>
+
+  </div><!-- /.container -->
+  </div><!-- /#salary-profile-screen -->
+</div>

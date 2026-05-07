@@ -1,0 +1,411 @@
+<div class="tab-panel" id="panel-outstanding">
+
+  <!-- SCREEN 1: MAIN LIST -->
+  <div id="os-main" class="container" style="max-width:860px;">
+
+    <!-- Page header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:20px 0 24px;border-bottom:1px solid rgba(224,82,82,0.12);margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(224,82,82,0.18),rgba(224,82,82,0.06));border:1px solid rgba(224,82,82,0.25);display:flex;align-items:center;justify-content:font-size:22px;flex-shrink:0;">
+        <i class="fas fa-credit-card" style="color:#f87171;display:block;margin:auto;"></i>
+        </div>
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--text);letter-spacing:-0.3px;line-height:1.1;">Loan <span style="color:#f87171;">Entry</span></div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.8px;margin-top:3px;">Staff Loan &amp; Repayment Records</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Loan Card -->
+    <div style="background:linear-gradient(160deg,rgba(224,82,82,0.06) 0%,rgba(224,82,82,0.02) 100%);border:1px solid rgba(224,82,82,0.18);border-radius:18px;padding:24px;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(224,82,82,0.1);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.22);display:flex;align-items:center;justify-content:center;font-size:16px;">➕</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">New Loan Entry</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">Fill all required fields to create a loan profile</div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:14px;">
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:rgba(224,82,82,0.7);display:block;margin-bottom:6px;">Staff Member ✦</label>
+          <select id="debtStaffSelect" style="width:100%;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-radius:10px;padding:11px 13px;font-size:13px;outline:none;font-family:inherit;transition:border-color 0.2s;" onchange="onDebtStaffSelect()" onfocus="this.style.borderColor='rgba(224,82,82,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'">
+            <option value="">— Select Staff Member —</option>
+          </select>
+          <input type="hidden" id="debtCustomerName"/>
+          <input type="hidden" id="debtStaffId"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);display:block;margin-bottom:6px;">Phone <span style="font-size:8px;text-transform:none;letter-spacing:0;color:rgba(255,255,255,0.25);font-weight:400;">(auto-filled)</span></label>
+          <input type="tel" id="debtCustomerPhone" placeholder="Auto-filled from profile" maxlength="11" inputmode="numeric" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-radius:10px;padding:11px 13px;font-size:13px;outline:none;font-family:inherit;transition:border-color 0.2s;" onfocus="this.style.borderColor='rgba(224,82,82,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'"/>
+          <div id="debtPhoneError" style="font-size:11px;color:var(--red);margin-top:4px;display:none;">⚠️ Must be exactly 11 digits</div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:14px;">
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:rgba(224,82,82,0.7);display:block;margin-bottom:6px;">Loan Amount (₦) ✦</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:rgba(224,82,82,0.6);font-family:'Cormorant Garamond',serif;">₦</span>
+            <input type="number" id="debtAmount" placeholder="0.00" min="0" style="width:100%;box-sizing:border-box;background:rgba(224,82,82,0.05);border:1.5px solid rgba(224,82,82,0.2);color:var(--text);border-radius:10px;padding:11px 13px 11px 30px;font-size:18px;font-weight:700;font-family:'Cormorant Garamond',serif;outline:none;transition:border-color 0.2s,box-shadow 0.2s;" onfocus="this.style.borderColor='rgba(224,82,82,0.5)';this.style.boxShadow='0 0 0 3px rgba(224,82,82,0.07)'" onblur="this.style.borderColor='rgba(224,82,82,0.2)';this.style.boxShadow='none'"/>
+          </div>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);display:block;margin-bottom:6px;">Date &amp; Time Collected</label>
+          <div style="display:flex;gap:8px;">
+            <input type="date" id="debtCollectedDate" style="flex:1;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-radius:10px;padding:11px 10px;font-size:12px;outline:none;font-family:inherit;"/>
+            <input type="time" id="debtCollectedTime" style="width:106px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-radius:10px;padding:11px 8px;font-size:12px;outline:none;font-family:inherit;" title="Time loan was collected"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:18px;">
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);display:block;margin-bottom:6px;">Repayment Due Date</label>
+          <input type="date" id="debtDueDate" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-radius:10px;padding:11px 13px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);display:block;margin-bottom:6px;">Notes / Reason</label>
+          <input type="text" id="debtNotes" placeholder="e.g. Salary advance, tools purchase…" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-radius:10px;padding:11px 13px;font-size:13px;outline:none;font-family:inherit;"/>
+        </div>
+      </div>
+      <button class="btn" id="addDebtBtn" 
+        style="width:100%;padding:14px;font-size:14px;font-weight:700;
+               border-radius:12px;background:linear-gradient(135deg,#c0392b,#e05252);
+               border:none;color:#fff;cursor:pointer;letter-spacing:0.5px;
+               transition:opacity 0.15s,transform 0.12s;
+               box-shadow:0 6px 20px rgba(224,82,82,0.3);" 
+        onmouseenter="this.style.opacity='0.88'" 
+        onmouseleave="this.style.opacity='1'">
+  <i class="fas fa-credit-card" style="margin-right:6px;"></i> Create Loan Profile
+</button>
+
+    </div>
+
+    <!-- Tab switcher -->
+    <div style="display:flex;gap:0;margin-bottom:20px;background:rgba(0,0,0,0.25);border-radius:14px;padding:5px;border:1px solid rgba(255,255,255,0.06);">
+<button id="subtab-active" onclick="switchLoanSubTab('active')" 
+        style="flex:1;padding:11px 14px;border-radius:10px;border:none;
+               cursor:pointer;font-size:12px;font-weight:700;letter-spacing:0.5px;
+               text-transform:uppercase;transition:all 0.25s;
+               background:rgba(224,82,82,0.85);color:#fff;
+               box-shadow:0 4px 12px rgba(224,82,82,0.25);">
+  <i class="fas fa-money-bill-wave" style="margin-right:6px;"></i> Active Loans
+</button>
+     <button id="subtab-alumni" onclick="switchLoanSubTab('alumni')" 
+        style="flex:1;padding:11px 14px;border-radius:10px;border:none;
+               cursor:pointer;font-size:12px;font-weight:700;letter-spacing:0.5px;
+               text-transform:uppercase;transition:all 0.25s;
+               background:transparent;color:#10b981;">
+  <i class="fas fa-check-circle" style="margin-right:6px;"></i> Settled 
+  &nbsp;<span id="alumniCountBadge" 
+              style="background:rgba(16,185,129,0.15);color:#10b981;
+                     border-radius:10px;padding:2px 8px;font-size:10px;">
+    0
+  </span>
+</button>
+
+    </div>
+
+    <!-- ACTIVE LOANS VIEW -->
+    <div id="view-active-loans">
+
+      <!-- Search + sort row -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div style="position:relative;flex:1;min-width:180px;">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.4;pointer-events:none;">🔍</span>
+          <input type="text" id="outstandingSearch" placeholder="Search name or phone…" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:50px;padding:10px 14px 10px 38px;font-size:13px;outline:none;font-family:inherit;transition:border-color 0.2s,box-shadow 0.2s;" onfocus="this.style.borderColor='rgba(224,82,82,0.4)';this.style.boxShadow='0 0 0 3px rgba(224,82,82,0.06)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.boxShadow='none'"/>
+        </div>
+        <select id="outstandingSortBy" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:50px;padding:10px 16px;font-size:12px;font-weight:600;font-family:inherit;outline:none;cursor:pointer;">
+         <option value="balance">
+  <i class="fas fa-arrow-down"></i> Balance
+</option>
+<option value="dueDate">
+  <i class="fas fa-calendar-alt"></i> Due Date
+  </option>
+  <option value="name">
+   <i class="fas fa-sort-alpha-down"></i> A–Z Name
+  </option>
+
+        </select>
+      </div>
+
+      <!-- Date filter row -->
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:12px 16px;background:rgba(0,0,0,0.2);border-radius:12px;border:1px solid rgba(255,255,255,0.05);">
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);white-space:nowrap;">Filter Date</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:10px;color:var(--text-muted);">From</label>
+          <input type="date" id="outstandingFrom" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:6px 10px;font-size:11px;outline:none;font-family:inherit;"/>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:10px;color:var(--text-muted);">To</label>
+          <input type="date" id="outstandingTo" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:6px 10px;font-size:11px;outline:none;font-family:inherit;"/>
+        </div>
+        <select id="outstandingDateField" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:8px;padding:6px 10px;font-size:11px;outline:none;font-family:inherit;cursor:pointer;">
+          <option value="collected">Loan Collected</option>
+          <option value="due">Due Date</option>
+        </select>
+        <button onclick="clearOutstandingDates()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;transition:all 0.2s;" onmouseenter="this.style.borderColor='rgba(224,82,82,0.4)';this.style.color='#f87171'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--text-muted)'">✕ Clear</button>
+      </div>
+
+      <!-- Loan list -->
+      <div id="outstandingTable"></div>
+
+      <!-- Summary footer -->
+      <div style="margin-top:20px;padding:18px 22px;background:linear-gradient(135deg,rgba(224,82,82,0.07),rgba(224,82,82,0.02));border:1px solid rgba(224,82,82,0.16);border-radius:14px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(224,82,82,0.6);margin-bottom:4px;">Total Outstanding</div>
+          <div id="totalOutstanding" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#f87171;">₦0</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">Active Profiles</div>
+          <div id="outstandingCount" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--text);">0</div>
+        </div>
+      </div>
+
+    </div><!-- end view-active-loans -->
+
+    <!-- PAID ALUMNI VIEW -->
+    <div id="view-alumni-loans" style="display:none;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="position:relative;flex:1;min-width:180px;">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.4;pointer-events:none;">🔍</span>
+          <input type="text" id="alumniSearch" placeholder="Search settled profiles…" oninput="renderAlumniTable()" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:50px;padding:10px 14px 10px 38px;font-size:13px;outline:none;font-family:inherit;transition:border-color 0.2s;" onfocus="this.style.borderColor='rgba(16,185,129,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"/>
+        </div>
+        <select id="alumniSortBy" onchange="renderAlumniTable()" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:50px;padding:10px 16px;font-size:12px;font-weight:600;font-family:inherit;outline:none;cursor:pointer;">
+          <option value="name">A–Z Name</option>
+          <option value="date">📅 Settled Date</option>
+          <option value="amount">💰 Total Loaned</option>
+        </select>
+      </div>
+      <div id="alumniTable"></div>
+      <div style="margin-top:20px;padding:16px 22px;background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(16,185,129,0.02));border:1px solid rgba(16,185,129,0.14);border-radius:14px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;color:var(--text-muted);">Fully Settled Profiles</div>
+        <div id="alumniTotalCount" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--green);">0</div>
+      </div>
+    </div>
+
+  </div><!-- /#os-main -->
+
+  <!-- SCREEN 2: BANK PROFILE PAGE -->
+  <div id="os-profile" style="display:none;">
+  <div class="container" style="max-width:800px;">
+
+    <!-- Back nav -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+      <button onclick="closeDebtProfile()" class="btn btn-ghost" style="padding:7px 18px;font-size:13px;">&#8592; Back</button>
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;">Loan Account</div>
+    </div>
+
+    <!-- Bank account card -->
+    <div style="background:linear-gradient(135deg,#0d1f0d 0%,#111827 60%,#0d1220 100%);border:1px solid rgba(16,185,129,0.2);border-radius:18px;padding:30px;margin-bottom:20px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(16,185,129,0.05);pointer-events:none;"></div>
+      <div style="position:absolute;bottom:-70px;right:80px;width:140px;height:140px;border-radius:50%;background:rgba(16,185,129,0.03);pointer-events:none;"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;">
+        <div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;color:rgba(16,185,129,0.65);margin-bottom:6px;">Account Holder</div>
+          <div id="pv-name" style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:#F0EAD6;letter-spacing:0.3px;line-height:1.1;"></div>
+          <div id="pv-phone" style="font-size:12px;color:rgba(240,234,214,0.45);margin-top:5px;letter-spacing:1px;"></div>
+          <div id="pv-loan-id" style="font-size:10px;color:rgba(16,185,129,0.55);margin-top:5px;letter-spacing:1px;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+          <div id="pv-status-badge" style="padding:5px 16px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px;"></div>
+          <button onclick="openEditDebt()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(240,234,214,0.6);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;letter-spacing:0.5px;transition:all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.1)';this.style.color='#F0EAD6'" onmouseleave="this.style.background='rgba(255,255,255,0.05)';this.style.color='rgba(240,234,214,0.6)'">&#9999;&#65039; Edit Profile</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:22px;">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;color:rgba(16,185,129,0.65);margin-bottom:8px;">Outstanding Balance</div>
+        <div id="pv-balance" style="font-size:54px;font-weight:700;color:#F0EAD6;font-family:'Cormorant Garamond',serif;line-height:1;letter-spacing:-1px;">&#8358;0</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+        <div style="background:rgba(0,0,0,0.25);padding:14px 16px;border-right:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:5px;">Total Loaned</div>
+          <div id="pv-original" style="font-size:15px;font-weight:600;color:#F0EAD6;">&#8358;0</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25);padding:14px 16px;border-right:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:5px;">Total Repaid</div>
+          <div id="pv-repaid" style="font-size:15px;font-weight:600;color:#34D399;">&#8358;0</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25);padding:14px 16px;">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:5px;">Repayment Due</div>
+          <div id="pv-due" style="font-size:15px;font-weight:600;color:#F0EAD6;">&#8212;</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);">
+        <div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:4px;">Loan Collected</div>
+          <div id="pv-collected" style="font-size:12px;color:rgba(240,234,214,0.6);">&#8212;</div>
+        </div>
+        <div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:4px;">Transactions</div>
+          <div id="pv-tx-count" style="font-size:12px;color:rgba(240,234,214,0.6);">0</div>
+        </div>
+        <div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(16,185,129,0.55);margin-bottom:4px;">Notes</div>
+          <div id="pv-notes" style="font-size:12px;color:rgba(240,234,214,0.6);">&#8212;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
+
+  <!-- CREDIT -->
+  <button onclick="pvCredit()" class="pv-action-card pv-credit">
+    <div class="pv-shine"></div>
+    <div class="pv-icon-ring">
+      <i class="fas fa-plus" style="font-size:22px;color:#0eca8e;"></i>
+    </div>
+    <span class="pv-badge">Loan</span>
+    <span class="pv-title">Credit</span>
+    <span class="pv-sub">Add Funds</span>
+  </button>
+
+  <!-- DEBIT -->
+  <button onclick="pvDebit()" class="pv-action-card pv-debit">
+    <div class="pv-shine"></div>
+    <div class="pv-icon-ring">
+      <i class="fas fa-minus" style="font-size:22px;color:#f87171;"></i>
+    </div>
+    <span class="pv-badge">Repay</span>
+    <span class="pv-title">Debit</span>
+    <span class="pv-sub">Deduct / Repay</span>
+  </button>
+
+  <!-- TRANSFER -->
+  <button onclick="pvUseInCalc()" class="pv-action-card pv-transfer">
+    <div class="pv-shine"></div>
+    <div class="pv-icon-ring">
+      <i class="fas fa-exchange-alt" style="font-size:22px;color:#60a5fa;"></i>
+    </div>
+    <span class="pv-badge">Move</span>
+    <span class="pv-title">Transfer</span>
+    <span class="pv-sub">Use in Calculator</span>
+  </button>
+
+</div>
+
+    <!-- Statement ledger -->
+    <div style="background:var(--surface);border:1px solid var(--surface3);border-radius:14px;overflow:hidden;margin-bottom:20px;">
+      <div style="padding:16px 24px;border-bottom:1px solid var(--surface3);background:var(--surface2);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--gold);font-weight:600;">Account Statement</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;letter-spacing:0.5px;">Full transaction history</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:110px 1fr 120px 120px 130px 36px;padding:9px 24px;background:rgba(16,185,129,0.04);border-bottom:1px solid var(--surface3);">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);">Date</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);">Description</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);text-align:right;">Credit (&#8358;)</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);text-align:right;">Debit (&#8358;)</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);text-align:right;">Balance (&#8358;)</div>
+        <div></div>
+      </div>
+      <div id="pv-tx-list"></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <button onclick="shareOnWhatsApp()" style="background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.35);color:#25D366;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;letter-spacing:0.5px;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onmouseenter="this.style.background='rgba(37,211,102,0.2)'" onmouseleave="this.style.background='rgba(37,211,102,0.1)'">
+        <i class="fab fa-whatsapp" style="font-size:14px;"></i>
+        Share Statement
+      </button>
+      <button onclick="deleteCurrentDebt()" style="background:none;border:1px solid rgba(224,82,82,0.2);color:rgba(224,82,82,0.5);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;letter-spacing:0.5px;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseleave="this.style.borderColor='rgba(224,82,82,0.2)';this.style.color='rgba(224,82,82,0.5)'">&#128465; Delete Profile</button>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div id="editDebtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);z-index:300;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+    <div style="background:var(--surface);border:1px solid rgba(16,185,129,0.3);border-radius:18px;max-width:500px;width:100%;margin:auto;animation:modalIn 0.22s ease;max-height:90vh;overflow-y:auto;">
+
+      <!-- Header -->
+      <div style="padding:18px 24px;border-bottom:1px solid var(--surface3);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;border-radius:18px 18px 0 0;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:var(--gold);">&#9999;&#65039; Edit Loan</div>
+        <button onclick="closeEditDebt()" style="background:none;border:none;color:var(--text-muted);font-size:26px;cursor:pointer;line-height:1;">&#215;</button>
+      </div>
+
+      <div style="padding:22px 24px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Loan ID badge -->
+        <div id="edit-loan-id-badge" style="font-size:11px;color:rgba(16,185,129,0.6);font-weight:600;letter-spacing:0.5px;"></div>
+
+        <!-- Staff dropdown -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Staff Member</label>
+          <select id="edit-staff-select" onchange="onEditDebtStaffSelect()" style="width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.08);color:var(--text);border-radius:10px;padding:10px 13px;font-size:14px;outline:none;font-family:inherit;">
+            <option value="">— Select Staff —</option>
+          </select>
+        </div>
+
+        <!-- Name + Phone -->
+        <div class="form-row" style="margin:0;">
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Full Name</label>
+            <input type="text" id="edit-name" style="width:100%;box-sizing:border-box;"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Phone Number</label>
+            <input type="tel" id="edit-phone" maxlength="11" inputmode="numeric" style="width:100%;box-sizing:border-box;"/>
+            <div id="edit-phone-error" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">&#9888; Must be exactly 11 digits</div>
+          </div>
+        </div>
+
+        <!-- Loan Amount -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Loan Amount (&#8358;) <span style="font-size:9px;color:rgba(48,168,255,0.6);text-transform:none;letter-spacing:0;">— changing this recalculates balance</span></label>
+          <input type="number" id="edit-amount" min="0" placeholder="0" style="width:100%;box-sizing:border-box;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);"/>
+        </div>
+
+        <!-- Collected Date + Time -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Date &amp; Time Loan Collected</label>
+          <div style="display:flex;gap:8px;">
+            <input type="date" id="edit-collected" style="flex:1;"/>
+            <input type="time" id="edit-collected-time" style="width:116px;" title="Time loan was collected"/>
+          </div>
+        </div>
+
+        <!-- Due Date -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Repayment Due Date</label>
+          <input type="date" id="edit-due" style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <!-- Status -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:8px;">Loan Status</label>
+          <div style="display:flex;gap:10px;">
+            <button type="button" id="edit-status-outstanding" onclick="setEditLoanStatus('Outstanding')"
+              style="flex:1;padding:9px;border-radius:10px;border:1px solid rgba(48,168,255,0.4);background:rgba(48,168,255,0.12);color:#60a5fa;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all 0.15s;">
+              ⏳ Outstanding
+            </button>
+            <button type="button" id="edit-status-paid" onclick="setEditLoanStatus('Paid')"
+              style="flex:1;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all 0.15s;">
+              ✅ Paid / Settled
+            </button>
+          </div>
+          <input type="hidden" id="edit-status" value="Outstanding"/>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group" style="margin:0;">
+          <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:5px;">Notes / Description</label>
+          <input type="text" id="edit-notes" placeholder="e.g. Salary advance, tools purchase..." style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeEditDebt()">Cancel</button>
+          <button class="btn btn-gold" style="flex:2;" id="editDebtSaveBtn" onclick="saveEditDebt()">&#128190; Save Changes</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>

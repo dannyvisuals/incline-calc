@@ -1,0 +1,19 @@
+<div class="tab-panel" id="panel-inventory">
+  <div class="inventory-page">
+    <div class="inventory-header">
+      <div>
+        <h2 class="inventory-title">Task Management</h2>
+        <p class="inventory-subtitle">Track all completed and ongoing staff tasks</p>
+      </div>
+      <div class="inventory-filters">
+        <button class="filter-btn active" onclick="switchTab('orders'); filterTasks('all')">All Tasks</button>
+        <button class="filter-btn" onclick="switchTab('orders'); setTimeout(()=>_setTaskPill('In Progress',document.querySelector('.pill-progress')),300)">In Progress</button>
+        <button class="filter-btn" onclick="switchTab('orders'); setTimeout(()=>_setTaskPill('Cancelled',document.querySelector('.pill-cancelled')),300)">Cancelled</button>
+      </div>
+    </div>
+    <!-- Staff Task Cards Grid -->
+    <div class="staff-grid" id="staff-grid">
+      <!-- Cards populated by JavaScript -->
+    </div>
+  </div>
+</div>

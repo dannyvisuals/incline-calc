@@ -1,0 +1,102 @@
+<div class="tab-panel" id="panel-analysis">
+<div style="max-width:900px;margin:0 auto;padding:0 20px 80px;">
+
+  <!-- Header -->
+  <div style="padding:24px 0 20px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+    <div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(16,185,129,0.55);margin-bottom:8px;">Inclineworks Int'l</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-0.5px;">Production <span style="color:var(--green);">Analysis</span></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;letter-spacing:0.3px;">Items produced per service, per period</div>
+    </div>
+    <!-- Controls -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div style="position:relative;">
+        <select class="anx-sel" id="anx-time" onchange="renderAnalysis()">
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="3month">Last 3 Months</option>
+          <option value="year">This Year</option>
+          <option value="all">All Time</option>
+        </select>
+      </div>
+      <select class="anx-sel" id="anx-staff" onchange="renderAnalysis()">
+        <option value="all">All Staff</option>
+      </select>
+      <select class="anx-sel" id="anx-cat" onchange="renderAnalysis()">
+        <option value="all">All Categories</option>
+        <option value="sewing">Sewing Only</option>
+        <option value="cutting">Cutting Only</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Auto-expand notice -->
+  <div id="anx-expand-notice" style="display:none;background:rgba(48,168,255,0.06);border:1px solid rgba(48,168,255,0.2);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:rgba(48,168,255,0.8);display:flex;align-items:center;gap:8px;">
+    ⚡ No data for that period — showing all available data instead.
+  </div>
+
+  <!-- KPI strip -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;">
+    <div style="background:#0d1a0f;border:1px solid rgba(16,185,129,0.2);border-radius:16px;padding:20px 18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--gold-light));"></div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(16,185,129,0.55);margin-bottom:10px;">🪡 Total Sewn</div>
+      <div class="anx-pill-val" id="anx-total-sewn" style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--green);line-height:1;">0</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">items</div>
+    </div>
+    <div style="background:#1a140a;border:1px solid rgba(48,168,255,0.2);border-radius:16px;padding:20px 18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),#f59e0b);"></div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(48,168,255,0.55);margin-bottom:10px;">✂ Total Cut</div>
+      <div class="anx-pill-val" id="anx-total-cut" style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:#FBBF24;line-height:1;">0</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">items</div>
+    </div>
+    <div style="background:#0e1120;border:1px solid rgba(129,140,248,0.2);border-radius:16px;padding:20px 18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#818CF8,#c084fc);"></div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(129,140,248,0.55);margin-bottom:10px;">📋 Service Types</div>
+      <div class="anx-pill-val" id="anx-total-svc" style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:#818CF8;line-height:1;">0</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">unique services</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px;align-items:start;">
+    <!-- Bar chart -->
+    <div style="background:#0b1410;border:1px solid rgba(16,185,129,0.15);border-radius:18px;overflow:hidden;">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(16,185,129,0.6);"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);">Quantity Produced Per Service</div>
+      </div>
+      <div style="padding:16px 16px 20px;">
+        <div id="anx-bar-wrap" style="position:relative;min-height:280px;">
+          <div id="anx-empty-state" style="display:none;text-align:center;padding:60px 20px;color:var(--text-muted);">
+            <div style="font-size:40px;margin-bottom:14px;">📊</div>
+            <div style="font-size:13px;">No production data for this filter.</div>
+          </div>
+          <canvas id="anx-bar-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Donut chart -->
+    <div id="anx-donut-wrap" style="background:#0b1410;border:1px solid rgba(16,185,129,0.15);border-radius:18px;overflow:hidden;">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#FBBF24;box-shadow:0 0 8px rgba(48,168,255,0.5);"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);">Sewing vs Cutting</div>
+      </div>
+      <div style="padding:16px 16px 24px;">
+        <div style="position:relative;height:200px;">
+          <canvas id="anx-donut-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service breakdown table -->
+  <div id="anx-svc-table" style="background:#0b1410;border:1px solid rgba(16,185,129,0.15);border-radius:18px;overflow:hidden;">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#818CF8;box-shadow:0 0 8px rgba(129,140,248,0.5);"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);">Service Breakdown</div>
+    </div>
+    <div id="anx-svc-rows" style="padding:12px 16px 16px;"></div>
+  </div>
+
+</div>
+</div>

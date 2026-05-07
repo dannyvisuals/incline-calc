@@ -1,0 +1,203 @@
+<div class="tab-panel" id="panel-task-order">
+  <div class="to-page">
+
+    <!-- Page Header -->
+    <div class="to-header">
+      <div class="to-header__left">
+        <div class="to-header__icon"><i class="fa-solid fa-scissors"></i></div>
+        <div>
+          <h2 class="to-header__title">New Task</h2>
+          <p class="to-header__sub">Create a custom tailoring order and generate professional receipt</p>
+        </div>
+      </div>
+      <div class="to-header__receipt" id="to-receipt-badge">Receipt #—</div>
+    </div>
+
+    <!-- Client, Order & Bank Details — above invoice split -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px;">
+      <!-- Client & Order Info -->
+      <div class="to-card">
+        <div class="to-card__head">
+          <div class="to-card__icon"><i class="fa-solid fa-user-tie"></i></div>
+          <div>
+            <div class="to-card__title">Staff &amp; Task Details</div>
+            <div class="to-card__sub">Essential information for this task</div>
+          </div>
+        </div>
+        <div class="to-card__body">
+          <div class="to-grid to-grid--2">
+    <div class="to-field">
+  <label class="to-label">
+    Staff Name <span class="to-req">*</span>
+  </label>
+
+  <div class="staff-autocomplete-wrap">
+
+    <input
+      class="to-input"
+      type="text"
+      id="to-name"
+      placeholder="e.g. Gerald Majella"
+      autocomplete="off"
+    />
+
+    <div id="staffAcList"></div>
+
+  </div>
+</div>
+            <div class="to-field">
+              <label class="to-label">Phone Number</label>
+              <input class="to-input" type="tel" id="to-phone" placeholder="09025902675" maxlength="11"/>
+            </div>
+          </div>
+          <div class="to-grid to-grid--2" style="margin-top:20px;">
+            <div class="to-field">
+              <label class="to-label">Task ID <span class="to-hint">(Optional – 6 chars)</span></label>
+              <input class="to-input to-input--code" type="text" id="to-task-id" placeholder="AB12CD" maxlength="6"
+                oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,6); toUpdateReceipt();"/>
+            </div>
+            <div class="to-field">
+              <label class="to-label">Task Date <span class="to-req">*</span></label>
+              <input class="to-input" type="date" id="to-order-date"/>
+            </div>
+          </div>
+          <div class="to-field" style="margin-top:20px;">
+            <label class="to-label">Due / Delivery Date <span class="to-req">*</span></label>
+            <input class="to-input" type="date" id="to-due-date"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bank Details -->
+      <div class="to-card">
+        <div class="to-card__head">
+          <div class="to-card__icon"><i class="fa-solid fa-building-columns"></i></div>
+          <div>
+            <div class="to-card__title">Payment Destination</div>
+            <div class="to-card__sub">Bank details for transfer or balance</div>
+          </div>
+        </div>
+        <div class="to-card__body">
+          <div class="to-grid to-grid--2">
+            <div class="to-field">
+              <label class="to-label">Bank Name</label>
+              <input class="to-input" type="text" id="to-bank-name" placeholder="Access Bank"/>
+            </div>
+            <div class="to-field">
+              <label class="to-label">Account Number</label>
+              <input class="to-input" type="text" id="to-bank-acct" placeholder="0123456789" maxlength="10"/>
+            </div>
+          </div>
+          <div class="to-field" style="margin-top:20px;">
+            <label class="to-label">Account Name</label>
+            <input class="to-input" type="text" id="to-bank-name-acct" placeholder="Gerald Majella"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2-col layout: Left=Status+Services+Adjustments  Right=Invoice -->
+    <div class="to-layout">
+
+      <!-- LEFT COLUMN -->
+      <div class="to-left">
+
+        <!-- Task Status -->
+        <div class="to-card">
+          <div class="to-card__head">
+            <div class="to-card__icon"><i class="fa-solid fa-list-check"></i></div>
+            <div>
+              <div class="to-card__title">Task Status</div>
+              <div class="to-card__sub">Current stage of this Task</div>
+            </div>
+          </div>
+          <div class="to-card__body">
+            <div class="to-status-row">
+              <button class="to-status-pill to-status-pill--progress active" data-status="In Progress"       onclick="toSetStatus(this)"><i class="fa-solid fa-circle-half-stroke"></i> In Progress</button>
+              <button class="to-status-pill to-status-pill--ready"           data-status="Ready for Pickup"  onclick="toSetStatus(this)"><i class="fa-solid fa-circle-check"></i> Ready for Pickup</button>
+              <button class="to-status-pill to-status-pill--completed"       data-status="Completed"         onclick="toSetStatus(this)"><i class="fa-solid fa-circle-check"></i> Completed</button>
+              <button class="to-status-pill to-status-pill--cancelled"       data-status="Cancelled"         onclick="toSetStatus(this)"><i class="fa-solid fa-circle-xmark"></i> Cancelled</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tailoring Services -->
+        <div class="to-card">
+          <div class="to-card__head">
+            <div class="to-card__icon"><i class="fa-solid fa-scissors"></i></div>
+            <div>
+              <div class="to-card__title">Tailoring Services</div>
+              <div class="to-card__sub">Add items for this Task</div>
+            </div>
+          </div>
+          <div class="to-card__body">
+            <div class="to-svc-header">
+              <span>Service</span>
+              <span style="text-align:center;">Qty</span>
+              <span style="text-align:right;">Subtotal</span>
+              <span></span>
+            </div>
+            <div id="to-services-list"></div>
+            <button class="to-add-btn" onclick="toAddService()">
+              <i class="fa-solid fa-plus"></i> Add Service
+            </button>
+          </div>
+        </div>
+
+        <!-- Adjustments + Notes -->
+        <div class="to-card">
+          <div class="to-card__head">
+            <div class="to-card__icon"><i class="fa-solid fa-scale-balanced"></i></div>
+            <div>
+              <div class="to-card__title">Adjustments &amp; Notes</div>
+              <div class="to-card__sub">Deductions, advances, and special instructions</div>
+            </div>
+          </div>
+          <div class="to-card__body">
+            <div class="to-grid to-grid--2">
+              <div class="to-field">
+                <label class="to-label">Loan Deduction (₦)</label>
+                <input class="to-input" type="number" id="to-deduction" placeholder="0" min="0" oninput="toCalc()"/>
+              </div>
+              <div class="to-field">
+                <label class="to-label">Advance Paid (₦)</label>
+                <input class="to-input" type="number" id="to-advance" placeholder="0" min="0" oninput="toCalc()"/>
+              </div>
+            </div>
+            <div class="to-field" style="margin-top:24px;">
+              <label class="to-label">Notes / Measurements</label>
+              <textarea class="to-textarea" id="to-notes" placeholder="Chest: 40in, Waist: 34in, Sleeve: 25in — Any special instructions..."></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end to-left -->
+
+      <!-- RIGHT COLUMN – Live Invoice -->
+      <div class="to-right">
+        <div class="to-invoice">
+          <div class="to-invoice__header">
+            <span class="to-invoice__label">Live Preview</span>
+            <span class="to-invoice__receipt" id="to-inv-receipt">Receipt #—</span>
+          </div>
+          <div class="to-invoice__rows">
+            <div class="to-invoice__row"><span>Items</span><span id="to-inv-items">0</span></div>
+            <div class="to-invoice__row"><span>Subtotal</span><span id="to-inv-subtotal">₦0</span></div>
+            <div class="to-invoice__row to-invoice__row--red"><span>Loan Deduction</span><span id="to-inv-deduction">−₦0</span></div>
+            <div class="to-invoice__row to-invoice__row--red"><span>Advance Paid</span><span id="to-inv-advance">−₦0</span></div>
+          </div>
+          <div class="to-invoice__total">
+            <span class="to-invoice__total-lbl">TOTAL DUE</span>
+            <span class="to-invoice__total-val" id="to-inv-total">₦0</span>
+          </div>
+          <div class="to-invoice__actions">
+            <button class="to-btn-save" id="saveOrderBtn" onclick="saveOrder()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--green),var(--green-dark,#0aab72));color:#000;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.9'" onmouseleave="this.style.opacity='1'"><i class="fa-solid fa-floppy-disk"></i> Save Order</button>
+            <button class="to-btn-print" onclick="toPrint()"><i class="fa-solid fa-print"></i> Print Receipt</button>
+            <button class="to-btn-clear" onclick="toClear()"><i class="fa-solid fa-trash"></i> Clear Form</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

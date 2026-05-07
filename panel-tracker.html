@@ -1,0 +1,31 @@
+<div class="tab-panel" id="panel-tracker">
+
+<div class="trk-wrap">
+
+  <div class="trk-heading">
+    <div class="trk-heading-title">Receipt <em>&</em> Loan</div>
+    <div class="trk-heading-sub">Tracker</div>
+  </div>
+
+  <!-- Mode toggle -->
+  <div class="trk-mode-row" id="trackerModeBtns">
+    <button class="trk-mode-btn active" id="trkModeOrder" onclick="setTrackerMode('order')">🧾 Receipt</button>
+    <button class="trk-mode-btn" id="trkModeLoan"  onclick="setTrackerMode('loan')">💸 Loan</button>
+  </div>
+
+  <!-- Search -->
+  <div class="trk-search-box">
+    <div class="trk-input-row">
+      <div class="trk-input-wrap">
+        <input type="text" id="trackerInput" placeholder="Enter Receipt No. e.g. REC-001" onkeydown="if(event.key==='Enter') runTracker()"/>
+      </div>
+      <button class="trk-search-btn" onclick="runTracker()">Search</button>
+      <button class="trk-clear-btn" onclick="clearTracker()" title="Clear">✕</button>
+    </div>
+    <div class="trk-hint" id="trk-hint-text">Enter a receipt number or task ID to look up a record</div>
+  </div>
+
+  <div id="trackerResult"></div>
+
+</div>
+</div>
