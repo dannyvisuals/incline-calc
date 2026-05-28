@@ -12,7 +12,7 @@ html {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
+  /* overflow: hidden removed — it clips fixed-position sidenav on some browsers */
 }
 
     :root {
@@ -682,7 +682,7 @@ body {
     0 0 0 18px rgba(187, 204, 198, 0.025),
     0 0 0 36px rgba(16, 185, 129, 0.012);
 
-  opacity: 0.15;
+  opacity: 0.25;
   pointer-events: none;
   z-index: 0;
   transition: all 0.4s ease;
@@ -708,13 +708,13 @@ body {
 }
 
 .workspace::after {
-  animation: pulseGlow 5s infinite ease-in-out;
+  animation: pulseGlow 6s infinite ease-in-out;
   backdrop-filter: blur(6px);
 }
 /* 🔥 Hover effect (trigger from parent) */
 .workspace:hover::after {
   transform: translate(-50%, -50%) scale(1.08);
-  opacity: 0.25;
+  opacity: 0.35;
   box-shadow:
     0 0 0 22px rgba(187, 204, 198, 0.06),
     0 0 0 48px rgba(16, 185, 129, 0.04),
@@ -1136,7 +1136,7 @@ body {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 380px) {
   .sidenav {
     display: none;
   }
@@ -1923,7 +1923,7 @@ body {
   .pa-right { position: static; }
   .staff-form-grid { grid-template-columns: 1fr; }
 }
-@media (max-width: 560px) {
+@media (max-width: 380px) {
   .sidenav { display: none; }
   .workspace { margin-left: 0; }
   .metrics { grid-template-columns: 1fr 1fr; }
