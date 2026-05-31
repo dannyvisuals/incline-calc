@@ -310,7 +310,7 @@ function switchTab(tab) {
     }
   }
   if (tab==='analysis') { if(typeof renderAnalysis==='function') renderAnalysis(); }
-  if (tab==='admin')    { renderAdminPanel(); if(typeof _cacheStale==='function' && _cacheStale('prices') && typeof loadPricesFromSupabase==='function') loadPricesFromSupabase(); }
+  if (tab==='admin')    { renderAdminPanel(); }
   if(document.getElementById('tab-panels-container')) document.getElementById('tab-panels-container').scrollTop = 0;
 }
 
@@ -895,15 +895,12 @@ let orderStatus = "Pending";
 
 /* loadPricesFromSupabase — fetches from Appwrite and updates SERVICES + localStorage */
 async function loadPricesFromSupabase() {
-  // Don't overwrite prices while a save is in progress
-  if (typeof _pricesSaving !== 'undefined' && _pricesSaving) return;
   try {
     const data = await sbGetPrices();
     if (data && data.length) {
       SERVICES = data.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
       localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
       if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now();
-      if (typeof renderAdminPanel === 'function') renderAdminPanel();
     }
   } catch(e) { console.warn('loadPricesFromSupabase:', e); }
 }
@@ -1995,49 +1992,44 @@ async function deleteCustomService(name) {
   showToast('🗑 "' + name + '" removed.');
 }
 
-var _pricesSaving = false; // lock: blocks loadPricesFromSupabase while save is in progress
-
 async function saveAllPrices() {
-  if (_pricesSaving) return; // prevent double-fire
-  // Read all current input values into SERVICES
-  $('.admin-price-input').each(function(){
-    const name = $(this).data('name');
-    const price = parseFloat($(this).val()) || 0;
-    const svc = SERVICES.find(s => s.name === name);
+  // 1. Read every price input into SERVICES
+  document.querySelectorAll('.admin-price-input').forEach(function(inp) {
+    var name  = inp.getAttribute('data-name');
+    var price = parseFloat(inp.value) || 0;
+    var svc   = SERVICES.find(function(s){ return s.name === name; });
     if (svc) svc.price = price;
   });
 
-  // Stamp immediately so stale-check won't trigger a re-fetch during the save
-  if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now() + 5 * 60 * 1000;
-  _pricesSaving = true;
-
+  // 2. Save to localStorage right away
   localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
+
+  // 3. Re-render price list so user sees their new values immediately
   renderAdminPanel();
-  $('#adminSaveStatus').text('Saving...');
 
-  try {
-    await sbSavePrices(SERVICES);
-    if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now() + 5 * 60 * 1000;
-    $('#adminSaveStatus').text('Saved at ' + new Date().toLocaleTimeString());
+  // 4. Update the status label
+  var statusEl = document.getElementById('adminSaveStatus');
+  if (statusEl) statusEl.textContent = 'Saving...';
+
+  // 5. Push to Appwrite (fire and forget)
+  sbSavePrices(SERVICES).then(function() {
+    if (statusEl) statusEl.textContent = 'Saved at ' + new Date().toLocaleTimeString();
     showToast('✅ Prices saved!');
-  } catch(e) {
+  }).catch(function(e) {
     console.error('Prices sync failed:', e);
-    showToast('⚠️ Save failed — check connection');
-    $('#adminSaveStatus').text('Save failed!');
-  } finally {
-    _pricesSaving = false;
-  }
+    if (statusEl) statusEl.textContent = 'Sync failed - stored locally';
+    showToast('⚠️ Saved locally, cloud sync failed');
+  });
 
-  // Trigger storage event for staff pages (if on same device)
-  window.dispatchEvent(new Event('incline_prices_updated'));
-  // Refresh task-order service dropdowns
-  document.querySelectorAll('#to-services-list .to-svc-select').forEach(function(sel){
-    var cur = sel.value;
-    sel.innerHTML = buildOptions(cur);
+  // 6. Refresh task-order dropdowns so calculator uses new prices
+  document.querySelectorAll('#to-services-list .to-svc-select').forEach(function(sel) {
+    sel.innerHTML = buildOptions(sel.value);
   });
   if (typeof toCalc === 'function') toCalc();
-}
 
+  // 7. Notify other tabs
+  window.dispatchEvent(new Event('incline_prices_updated'));
+}
 function buildOptions(selected) {
   let html = '<option value="">— Select Service —</option>';
   let lastCat = '';
