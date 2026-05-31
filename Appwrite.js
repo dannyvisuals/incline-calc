@@ -189,14 +189,20 @@ async function sbGetPrices() {
 }
 
 async function sbSavePrices(services) {
+  // Appwrite doc IDs cannot have spaces or special chars - derive a safe ID from the name
+  function _safeId(name) {
+    return name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 36);
+  }
   try {
     for (const s of services) {
-      const data = { name: s.name, cat: s.cat, price: s.price, custom: s.custom || false };
-      // upsert: try update first, then create
+      const docId = _safeId(s.name);
+      const data  = { name: s.name, cat: s.cat, price: s.price, custom: s.custom || false };
       try {
-        await _awDbs.updateDocument(AW_DB_ID, AW_COL.prices, s.name, data);
+        await _awDbs.updateDocument(AW_DB_ID, AW_COL.prices, docId, data);
       } catch(_) {
-        await _awDbs.createDocument(AW_DB_ID, AW_COL.prices, s.name, data);
+        try {
+          await _awDbs.createDocument(AW_DB_ID, AW_COL.prices, docId, data);
+        } catch(e2) { console.warn('sbSavePrices item failed:', s.name, e2.message); }
       }
     }
   } catch(e) { console.warn('sbSavePrices:', e); }
@@ -204,7 +210,8 @@ async function sbSavePrices(services) {
 
 async function sbDeletePrice(name) {
   try {
-    await _awDbs.deleteDocument(AW_DB_ID, AW_COL.prices, String(name));
+    const docId = name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 36);
+    await _awDbs.deleteDocument(AW_DB_ID, AW_COL.prices, docId);
   } catch(e) { console.warn('sbDeletePrice:', e); }
 }
 
