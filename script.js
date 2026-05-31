@@ -2013,6 +2013,8 @@ function saveAllPrices() {
     sel.innerHTML = buildOptions(cur);
   });
   if (typeof toCalc === 'function') toCalc();
+  // Re-render the admin price list so updated prices are visible immediately
+  if (typeof renderAdminPanel === 'function') renderAdminPanel();
   $('#adminSaveStatus').text('Saved at ' + new Date().toLocaleTimeString());
   showToast('✅ Prices saved! Staff calculators will update.');
 }
@@ -5524,11 +5526,14 @@ function updateStaffPhoto(id, input) {
         sbUploadFile(fileId, fileObj).then(function() {
           const url = sbGetFileUrl(fileId);
           _photoCache[String(id)] = url;
-          // Save just the fileId in the staff record (tiny string)
-          _sbFetch('staff?id=eq.' + id, { method: 'PATCH', body: { photo: fileId }, prefer: 'return=minimal' })
-            .catch(()=>{});
-          renderAdminStaffList(false);
-          showToast('✅ Photo updated!');
+          // Save fileId in Appwrite staff record directly (avoids _sbFetch shim)
+          sbUpdateStaffPhoto(String(id), fileId).then(function() {
+            renderAdminStaffList(false);
+            showToast('✅ Photo updated!');
+          }).catch(function() {
+            renderAdminStaffList(false);
+            showToast('⚠️ Photo shown but database save failed. Try again.');
+          });
         }).catch(function(e) {
           showToast('⚠️ Photo upload failed: ' + e.message);
         });
