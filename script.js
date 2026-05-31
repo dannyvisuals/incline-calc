@@ -1246,7 +1246,7 @@ $(function(){
   };
   $('#closeModal').on('click', () => $('#viewModal').hide());
   $('#viewModal').on('click', function(e){ if($(e.target).is(this)) $(this).hide(); });
-  $('#savePricesBtn').on('click', saveAllPrices);
+  // savePricesBtn bound in wireFile2Events above
 
   // Outstanding balances tab
   $('#outstandingSearch, #outstandingSortBy, #outstandingFrom, #outstandingTo, #outstandingDateField').on('input change', renderOutstandingTable);
@@ -1998,6 +1998,7 @@ async function deleteCustomService(name) {
 var _pricesSaving = false; // lock: blocks loadPricesFromSupabase while save is in progress
 
 async function saveAllPrices() {
+  if (_pricesSaving) return; // prevent double-fire
   // Read all current input values into SERVICES
   $('.admin-price-input').each(function(){
     const name = $(this).data('name');
