@@ -884,11 +884,8 @@ const DEFAULT_SERVICES = [
 function getPrices() {
   try {
     const saved = JSON.parse(localStorage.getItem('incline_prices_v2'));
-    if (saved) {
-      const map = {};
-      saved.forEach(s => { map[s.name] = s.price; });
-      return DEFAULT_SERVICES.map(d => ({ ...d, price: map[d.name] ?? d.price }));
-    }
+    // If we have saved prices, use them exactly as-is (don't merge with defaults)
+    if (saved && saved.length) return saved.map(s => ({...s}));
   } catch(e) {}
   return DEFAULT_SERVICES.map(d => ({...d}));
 }
@@ -898,6 +895,8 @@ let orderStatus = "Pending";
 
 /* loadPricesFromSupabase — fetches from Appwrite and updates SERVICES + localStorage */
 async function loadPricesFromSupabase() {
+  // Don't overwrite prices while a save is in progress
+  if (typeof _pricesSaving !== 'undefined' && _pricesSaving) return;
   try {
     const data = await sbGetPrices();
     if (data && data.length) {
@@ -1996,31 +1995,46 @@ async function deleteCustomService(name) {
   showToast('🗑 "' + name + '" removed.');
 }
 
-function saveAllPrices() {
+var _pricesSaving = false; // lock: blocks loadPricesFromSupabase while save is in progress
+
+async function saveAllPrices() {
+  // Read all current input values into SERVICES
   $('.admin-price-input').each(function(){
     const name = $(this).data('name');
     const price = parseFloat($(this).val()) || 0;
     const svc = SERVICES.find(s => s.name === name);
     if (svc) svc.price = price;
   });
+
+  // Stamp immediately so stale-check won't trigger a re-fetch during the save
+  if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now() + 5 * 60 * 1000;
+  _pricesSaving = true;
+
   localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
-  sbSavePrices(SERVICES).then(function() {
-    // Stamp prices as freshly saved so tab-switch re-fetch doesn't overwrite them
-    if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now();
-  }).catch(e => console.error('Prices sync failed:', e));
+  renderAdminPanel();
+  $('#adminSaveStatus').text('Saving...');
+
+  try {
+    await sbSavePrices(SERVICES);
+    if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now() + 5 * 60 * 1000;
+    $('#adminSaveStatus').text('Saved at ' + new Date().toLocaleTimeString());
+    showToast('✅ Prices saved!');
+  } catch(e) {
+    console.error('Prices sync failed:', e);
+    showToast('⚠️ Save failed — check connection');
+    $('#adminSaveStatus').text('Save failed!');
+  } finally {
+    _pricesSaving = false;
+  }
+
   // Trigger storage event for staff pages (if on same device)
   window.dispatchEvent(new Event('incline_prices_updated'));
-  // Refresh task-order service dropdowns (to-services-list uses toServiceRows)
-  // Re-render any open service rows in the task-order panel
+  // Refresh task-order service dropdowns
   document.querySelectorAll('#to-services-list .to-svc-select').forEach(function(sel){
     var cur = sel.value;
     sel.innerHTML = buildOptions(cur);
   });
   if (typeof toCalc === 'function') toCalc();
-  // Re-render the admin price list so updated prices are visible immediately
-  if (typeof renderAdminPanel === 'function') renderAdminPanel();
-  $('#adminSaveStatus').text('Saved at ' + new Date().toLocaleTimeString());
-  showToast('✅ Prices saved! Staff calculators will update.');
 }
 
 function buildOptions(selected) {
