@@ -310,7 +310,7 @@ function switchTab(tab) {
     }
   }
   if (tab==='analysis') { if(typeof renderAnalysis==='function') renderAnalysis(); }
-  if (tab==='admin')    { if(typeof loadPricesFromSupabase==='function') loadPricesFromSupabase(); }
+  if (tab==='admin')    { renderAdminPanel(); if(typeof _cacheStale==='function' && _cacheStale('prices') && typeof loadPricesFromSupabase==='function') loadPricesFromSupabase(); }
   if(document.getElementById('tab-panels-container')) document.getElementById('tab-panels-container').scrollTop = 0;
 }
 
@@ -903,6 +903,7 @@ async function loadPricesFromSupabase() {
     if (data && data.length) {
       SERVICES = data.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
       localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
+      if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now();
       if (typeof renderAdminPanel === 'function') renderAdminPanel();
     }
   } catch(e) { console.warn('loadPricesFromSupabase:', e); }
@@ -2003,7 +2004,10 @@ function saveAllPrices() {
     if (svc) svc.price = price;
   });
   localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
-  sbSavePrices(SERVICES).catch(e => console.error('Prices sync failed:', e));
+  sbSavePrices(SERVICES).then(function() {
+    // Stamp prices as freshly saved so tab-switch re-fetch doesn't overwrite them
+    if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now();
+  }).catch(e => console.error('Prices sync failed:', e));
   // Trigger storage event for staff pages (if on same device)
   window.dispatchEvent(new Event('incline_prices_updated'));
   // Refresh task-order service dropdowns (to-services-list uses toServiceRows)
