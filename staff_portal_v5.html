@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>InclineWorks – Staff Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<link rel="stylesheet" href="staff5.css">
+</head>
+<body> 
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="logo.PNG" alt="InclineWorks Logo" class="sidebar-logo-img">
+      <span class="logo-text">INCLINE<br>WORKS</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul>
+        <li class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">◈</span>
+          <span>Dashboard</span>
+        </li>
+        <li class="nav-item" data-page="tools">
+          <span class="nav-icon">⬡</span>
+          <span>Tools</span>
+        </li>
+        <li class="nav-item" data-page="reports">
+          <span class="nav-icon">◎</span>
+          <span>Reports</span>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="staff-badge">
+        <div class="staff-avatar"></div>
+        <div class="staff-meta">
+          <span class="staff-name"></span>
+          <span class="staff-id"></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+        <span class="page-subtitle" id="pageSubtitle">Welcome back, Stanley</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="liveClock"></div>
+        <button class="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <div class="content-area">
+
+      <!-- ========== DASHBOARD ========== -->
+      <div class="page active" id="dashboard">
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Staff</div>
+            <div class="stat-value" id="statStaff">15</div>
+            <div class="stat-bar"><div class="stat-fill" style="width:75%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">My Reports</div>
+            <div class="stat-value" id="statReports">0</div>
+            <div class="stat-bar"><div class="stat-fill" style="width:20%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Tasks</div>
+            <div class="stat-value" id="statTasks">0</div>
+            <div class="stat-bar"><div class="stat-fill" style="width:40%"></div></div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-label">Outstanding Debt</div>
+            <div class="stat-value" id="statDebt">₦0</div>
+            <div class="stat-bar"><div class="stat-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-panel">
+            <div class="panel-header">
+              <span>Recent Reports</span>
+              <button class="panel-link" data-page="reports">View All →</button>
+            </div>
+            <div id="dashReports" class="mini-list">
+              <p class="empty-msg">No reports submitted yet.</p>
+            </div>
+          </div>
+          <div class="dash-panel">
+            <div class="panel-header">
+              <span>My Tasks</span>
+              <button class="panel-link" data-page="tools">View All →</button>
+            </div>
+            <div id="dashTasks" class="mini-list">
+              <p class="empty-msg">No tasks assigned yet.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========== TOOLS ========== -->
+      <div class="page" id="tools">
+
+        <div class="tools-tabs">
+          <button class="tool-tab active" data-tool="newtask">New Task</button>
+          <button class="tool-tab" data-tool="calculator">Calculator</button>
+          <button class="tool-tab" data-tool="mytasks">My Tasks</button>
+          <button class="tool-tab" data-tool="mydebt">My Debt</button>
+          <button class="tool-tab" data-tool="messages" id="messagesTabBtn">Messages <span id="msgUnreadBadge" style="display:none;background:var(--green);color:#000;border-radius:50%;font-size:10px;padding:1px 5px;margin-left:4px;font-weight:800;">0</span></button>
+        </div>
+
+<!-- ========== NEW TASK TOOL ========== -->
+<div class="tool-panel active" id="newtask">
+  <div class="new-task-form">
+
+    <div class="section-label">Staff & Task Info</div>
+    <div class="grid2">
+      <div class="form-group">
+        <label>Staff Name</label>
+        <input type="text" id="taskStaffName" readonly>
+      </div>
+      <div class="form-group">
+        <label>Staff ID</label>
+        <input type="text" id="taskStaffId" readonly>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="taskPhone" readonly>
+      </div>
+      <div class="form-group">
+        <label>Task ID <span class="required">*</span></label>
+        <input type="text" id="taskId" placeholder="e.g. TK-202604" maxlength="10" style="text-transform:uppercase;">
+        <small id="taskIdCounter" style="color:var(--text-muted);font-size:11px;">0 / 6</small>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="form-group">
+        <label>Task Date <span class="required">*</span></label>
+        <input type="date" id="taskDate">
+      </div>
+      <div class="form-group">
+        <label>Due Date <span class="required">*</span></label>
+        <input type="date" id="taskDueDate">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Status</label>
+      <div class="priority-group" id="taskStatusGroup">
+        <button type="button" class="priority-btn active" data-status="Pending">Pending</button>
+        <button type="button" class="priority-btn" data-status="In Progress">In Progress</button>
+        <button type="button" class="priority-btn" data-status="Ready">Ready</button>
+        <button type="button" class="priority-btn" data-status="Delivered">Delivered</button>
+        <button type="button" class="priority-btn" data-status="Cancelled">Cancelled</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="taskNotes" rows="2" placeholder="Any additional notes..."></textarea>
+    </div>
+
+    <!-- Services Section -->
+    <div class="section-label">Services</div>
+    <div id="servicesContainer"></div>
+    <button type="button" class="submit-btn" id="addServiceBtn" style="margin-top:8px; background:var(--surface); color:var(--green);">
+      + Add Service
+    </button>
+
+    <!-- Totals -->
+    <div class="totals-box" style="margin-top:24px;">
+      <div class="totals-row">
+        <span>Items</span>
+        <span id="totalItems">0</span>
+      </div>
+      <div class="totals-row">
+        <span>Subtotal</span>
+        <span id="totalSubtotal">₦0</span>
+      </div>
+      <div class="totals-row">
+        <span>Loan Deduction</span>
+        <input type="number" id="loanDeduction" placeholder="0" style="width:140px;text-align:right;">
+      </div>
+      <div class="totals-row totals-final">
+        <span>Balance Due</span>
+        <span id="totalBalance" style="color:var(--green);">₦0</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:32px;">
+      <button type="button" class="submit-btn" id="clearTaskBtn" style="background:var(--surface); color:var(--text-dim);">Clear Form</button>
+      <button type="button" class="submit-btn" id="saveTaskBtn">Save Task</button>
+      <button type="button" class="submit-btn" id="savePrintBtn" style="background:var(--green);">Save & Print Receipt</button>
+    </div>
+
+  </div>
+</div>
+        <!-- Calculator Tool -->
+        <div class="tool-panel" id="calculator">
+          <div class="calc-wrap">
+            <div class="calc-display-area">
+              <div class="calc-history" id="calcHistory">No data is saved</div>
+              <div class="calc-expression" id="calcExpression"></div>
+              <div class="calc-display" id="calcDisplay">0</div>
+            </div>
+            <div class="calc-buttons">
+              <button class="calc-btn fn" id="calcAC">AC</button>
+              <button class="calc-btn fn" id="calcDel">⌫</button>
+              <button class="calc-btn fn" id="calcPct">%</button>
+              <button class="calc-btn op" data-op="÷">÷</button>
+
+              <button class="calc-btn num">7</button>
+              <button class="calc-btn num">8</button>
+              <button class="calc-btn num">9</button>
+              <button class="calc-btn op" data-op="×">×</button>
+
+              <button class="calc-btn num">4</button>
+              <button class="calc-btn num">5</button>
+              <button class="calc-btn num">6</button>
+              <button class="calc-btn op" data-op="-">−</button>
+
+              <button class="calc-btn num">1</button>
+              <button class="calc-btn num">2</button>
+              <button class="calc-btn num">3</button>
+              <button class="calc-btn op" data-op="+">+</button>
+
+              <button class="calc-btn num zero">0</button>
+              <button class="calc-btn num">.</button>
+              <button class="calc-btn eq" id="calcEquals">=</button>
+            </div>
+          </div>
+        </div>
+
+      <!-- My Tasks Tool -->
+      <div class="tool-panel" id="mytasks">
+        <div class="tasks-header">
+          <div class="tasks-filter">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="Pending">Pending</button>
+            <button class="filter-btn" data-filter="In Progress">In Progress</button>
+            <button class="filter-btn" data-filter="Ready">Ready</button>
+            <button class="filter-btn" data-filter="Delivered">Delivered</button>
+            <button class="filter-btn" data-filter="Cancelled">Cancelled</button>
+          </div>
+        </div>
+        <div id="taskList" class="task-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+        <!-- My Debt Tool -->
+        <div class="tool-panel" id="mydebt">
+          <div class="debt-summary">
+            <div class="debt-total-card">
+              <span class="debt-label">Total Outstanding</span>
+              <span class="debt-amount" id="debtTotal">₦0.00</span>
+            </div>
+            <div class="debt-total-card paid">
+              <span class="debt-label">Total Paid</span>
+              <span class="debt-amount" id="debtPaid">₦0.00</span>
+            </div>
+          </div>
+          <div id="debtList" class="debt-list">
+            <div class="empty-state">
+              <div class="empty-icon">◎</div>
+              <p>No debt records found.</p>
+              <span>Debt records from the admin portal will appear here.</span>
+            </div>
+          </div>
+        </div>
+
+      <!-- ========== MESSAGES TOOL ========== -->
+      <div class="tool-panel" id="messages" style="display:none;flex-direction:column;height:calc(100vh - 180px);min-height:400px;">
+
+        <!-- Chat Header -->
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);border-radius:12px 12px 0 0;flex-shrink:0;">
+          <div id="staffChatAvatar" style="width:36px;height:36px;border-radius:50%;background:var(--green);color:#000;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:13px;">IW</div>
+          <div style="flex:1;">
+            <div id="staffChatName" style="font-family:var(--font-head);font-weight:700;font-size:14px;color:var(--text);">Admin</div>
+            <div id="staffChatStatus" style="font-size:11px;color:var(--green);font-family:var(--font-mono);">● online</div>
+          </div>
+          <button onclick="IWChat.refresh()" style="background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:11px;font-family:var(--font-mono);">↻ Refresh</button>
+        </div>
+
+        <!-- Reply Banner -->
+        <div id="wa-reply-banner" class="wa-reply-banner" style="display:none;flex-shrink:0;">
+          <div class="wa-reply-bar"></div>
+          <div class="wa-reply-content">
+            <span class="wa-reply-label">Replying to</span>
+            <span id="wa-reply-preview" class="wa-reply-text"></span>
+          </div>
+          <button onclick="IWChat.cancelReply()" class="wa-reply-close">✕</button>
+        </div>
+
+        <!-- Context Menu -->
+        <div id="wa-ctx-menu" class="wa-ctx-menu" style="display:none;position:fixed;z-index:9999;">
+          <div class="wa-ctx-item" onclick="IWChat.ctxReply()">↩ Reply</div>
+          <div class="wa-ctx-item" onclick="IWChat.ctxCopy()">📋 Copy</div>
+          <div class="wa-ctx-item wa-ctx-danger" onclick="IWChat.ctxDelete()">🗑 Delete</div>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:4px;background:var(--bg);"></div>
+
+        <!-- Input Bar -->
+        <div style="display:flex;align-items:flex-end;gap:10px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);border-radius:0 0 12px 12px;flex-shrink:0;">
+          <textarea id="chat-input" rows="1" placeholder="Type a message to Admin…"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();IWChat.sendFromInput();}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';"
+            style="flex:1;resize:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 14px;font-family:var(--font-mono);font-size:13px;line-height:1.5;overflow:hidden;"></textarea>
+          <button onclick="IWChat.sendFromInput()" style="background:var(--green);color:#000;border:none;border-radius:10px;padding:10px 18px;font-family:var(--font-head);font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;">Send</button>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- ========== REPORTS ========== -->
+      <div class="page" id="reports">
+
+        <div class="reports-layout">
+          <div class="report-form-wrap">
+            <div class="section-label">New Report</div>
+            <form id="reportForm">
+              <div class="form-group">
+                <label>Report Title</label>
+                <input type="text" id="title" placeholder="e.g. Equipment issue" required>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <textarea id="description" placeholder="Describe the issue in detail..." required></textarea>
+              </div>
+              <div class="form-group">
+                <label>Priority</label>
+                <div class="priority-group">
+                  <button type="button" class="priority-btn active" data-priority="low">Low</button>
+                  <button type="button" class="priority-btn" data-priority="medium">Medium</button>
+                  <button type="button" class="priority-btn" data-priority="high">High</button>
+                </div>
+              </div>
+              <button type="submit" class="submit-btn">Submit Report</button>
+            </form>
+          </div>
+
+          <div class="report-list-wrap">
+            <div class="section-label">Submitted Reports <span id="reportCount" class="count-badge">0</span></div>
+            <div id="reportList" class="report-list">
+              <div class="empty-state">
+                <div class="empty-icon">◎</div>
+                <p>No reports yet.</p>
+                <span>Reports you submit will appear here.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+    <!-- GLOBAL MODAL -->
+  <div id="globalModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Confirm Action</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Content injected by JS -->
+      </div>
+      <div class="modal-footer" id="modalFooter" style="padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:12px; justify-content:flex-end;">
+        <!-- Buttons injected by JS -->
+      </div>
+    </div>
+  </div>
+  
+
+  <!-- LOAN PROFILE MODAL -->
+  <div class="modal-overlay" id="loanModal" style="display:none;">
+    <div class="modal-box" style="border-color:rgba(208,85,85,0.3);max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title" style="color:var(--red);">Loan Profile</div>
+        <button class="modal-close" onclick="closeLoanModal()">&#215;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="modal-stat">
+            <div class="modal-stat-label">Total Loaned</div>
+            <div class="modal-stat-val" id="lm-amount" style="font-size:20px;"></div>
+          </div>
+          <div class="modal-stat">
+            <div class="modal-stat-label">Balance</div>
+            <div class="modal-stat-val" id="lm-balance" style="font-size:20px;color:var(--red);"></div>
+          </div>
+          <div class="modal-stat">
+            <div class="modal-stat-label">Date Issued</div>
+            <div class="modal-stat-val" id="lm-date"></div>
+          </div>
+          <div class="modal-stat">
+            <div class="modal-stat-label">Status</div>
+            <div id="lm-status"></div>
+          </div>
+        </div>
+        <div id="lm-notes" style="background:var(--surface2,var(--surface));border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text-muted);font-style:italic;"></div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:10px;">Payment History</div>
+        <div id="lm-payments" style="margin-bottom:18px;max-height:220px;overflow-y:auto;"></div>
+        <input type="hidden" id="lm-deduct-amount"/>
+        <input type="hidden" id="lm-deduct-note"/>
+        <div style="display:flex;gap:8px;">
+          <button class="submit-btn" style="flex:1;background:var(--gold,#f59e0b);" onclick="printLoanFromModal()">🖨 Print</button>
+          <button class="submit-btn" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);" onclick="shareLoanFromModal()">📤 Share PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THERMAL RECEIPT (hidden, for print/share) -->
+  <div id="thermalReceipt">
+    <div class="tr-c tr-b" style="font-size:15px;">INCLINEWORKS INT'L</div>
+    <div class="tr-c" style="font-size:10px;">PROFESSIONAL TAILORING SERVICES</div>
+    <div class="tr-div"></div>
+    <div class="tr-c tr-b" id="tr-receipt"></div>
+    <div class="tr-c" style="font-size:10px;" id="tr-date"></div>
+    <div class="tr-div"></div>
+    <div class="tr-row"><span>Staff:</span><span id="tr-staff"></span></div>
+    <div class="tr-row"><span>ID:</span><span id="tr-staffid"></span></div>
+    <div class="tr-row"><span>Task:</span><span id="tr-task"></span></div>
+    <div class="tr-row"><span>Due:</span><span id="tr-due"></span></div>
+    <div class="tr-div"></div>
+    <div class="tr-b" style="margin-bottom:4px;">ITEMS</div>
+    <div id="tr-items"></div>
+    <div class="tr-div2"></div>
+    <div class="tr-row"><span>SUBTOTAL:</span><span id="tr-subtotal"></span></div>
+    <div class="tr-row tr-b"><span>TOTAL:</span><span id="tr-total"></span></div>
+    <div class="tr-div"></div>
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:2px;">BANK TRANSFER</div>
+    <div class="tr-row"><span>Bank:</span><span id="tr-bank"></span></div>
+    <div class="tr-row"><span>Acc No:</span><span id="tr-accnum"></span></div>
+    <div class="tr-row"><span>Name:</span><span id="tr-accname"></span></div>
+    <div class="tr-div"></div>
+    <div class="tr-c" style="font-size:10px;">Thank you for your service!</div>
+  </div>
+
+  <script src="chat_sync.js"></script>
+  <script src="staff5.js"></script>
+  <style>
+    /* ── Thermal Receipt ── */
+    @media print {
+      body > *:not(#thermalReceipt) { display: none !important; }
+      #thermalReceipt { display: block !important; }
+      @page { margin: 0; size: 80mm auto; }
+    }
+    #thermalReceipt {
+      display: none; font-family: 'Courier New', monospace;
+      font-size: 12px; color: #000; width: 300px;
+      margin: 0 auto; padding: 12px; background: #fff;
+    }
+    @media print {
+      #thermalReceipt { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 300px; margin: 0; }
+    }
+    .tr-c  { text-align: center; }
+    .tr-b  { font-weight: bold; }
+    .tr-div  { border-top: 1px dashed #000; margin: 5px 0; }
+    .tr-div2 { border-top: 2px solid #000;  margin: 5px 0; }
+    .tr-row  { display: flex; justify-content: space-between; margin: 2px 0; }
+    .tr-item { margin: 3px 0; }
+    .tr-item-line { display: flex; justify-content: space-between; color: #555; font-size: 11px; }
+
+    /* ── Staff Portal Chat Bubbles ── */
+    .wa-msg-row { display:flex; margin:2px 0; }
+    .wa-msg-row.out { justify-content:flex-end; }
+    .wa-msg-row.in  { justify-content:flex-start; }
+    .wa-bubble { max-width:72%; padding:9px 13px 6px; border-radius:12px; font-size:13px; line-height:1.5; position:relative; word-break:break-word; }
+    .wa-bubble.out { background:var(--green); color:#000; border-bottom-right-radius:3px; }
+    .wa-bubble.in  { background:var(--surface); color:var(--text); border-bottom-left-radius:3px; border:1px solid var(--border); }
+    .wa-meta { font-size:10px; margin-top:4px; text-align:right; opacity:0.6; font-family:var(--font-mono); }
+    .wa-ticks { margin-left:4px; }
+    .wa-sender-label { font-size:11px; font-weight:700; color:var(--green); margin-bottom:3px; font-family:var(--font-mono); }
+    .wa-bubble-reply { background:rgba(0,0,0,0.12); border-left:3px solid var(--green); border-radius:6px; padding:5px 8px; margin-bottom:6px; font-size:11px; opacity:0.85; }
+    .wa-date-sep { text-align:center; margin:10px 0; }
+    .wa-date-sep span { background:var(--surface2,var(--surface)); color:var(--text-muted); font-size:11px; padding:3px 12px; border-radius:20px; font-family:var(--font-mono); border:1px solid var(--border); }
+    .wa-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;opacity:0.5;gap:8px;font-family:var(--font-mono);color:var(--text-dim); }
+    .wa-empty-icon { font-size:36px; }
+    .wa-quick-reactions { display:none;position:absolute;top:-32px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 8px;gap:4px;z-index:100; }
+    .wa-quick-reactions.show { display:flex; }
+    .wa-quick-reactions.out { right:0; }
+    .wa-quick-reactions.in  { left:0; }
+    .wa-qr-btn { background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;border-radius:6px;transition:transform 0.15s; }
+    .wa-qr-btn:hover { transform:scale(1.3); }
+    .wa-reply-banner { display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--surface);border-top:1px solid var(--border); }
+    .wa-reply-bar { width:3px;height:32px;background:var(--green);border-radius:2px;flex-shrink:0; }
+    .wa-reply-content { flex:1; }
+    .wa-reply-label { display:block;font-size:11px;color:var(--green);font-weight:700;font-family:var(--font-mono); }
+    .wa-reply-text  { font-size:12px;color:var(--text-dim);font-family:var(--font-mono); }
+    .wa-reply-close { background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px 8px; }
+    .wa-ctx-menu { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:140px;box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+    .wa-ctx-item { padding:9px 14px;border-radius:7px;cursor:pointer;font-size:13px;font-family:var(--font-mono);color:var(--text);transition:background 0.15s; }
+    .wa-ctx-item:hover { background:var(--bg3); }
+    .wa-ctx-danger { color:#ef4444; }
+    .wa-edited-tag { font-size:10px;opacity:0.55;margin-left:4px;font-style:italic; }
+    .wa-highlight { background:rgba(16,185,129,0.35);border-radius:3px;padding:0 2px; }
+  </style>
+
+  <!-- RECEIPT PREVIEW MODAL -->
+  <div id="receiptModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 360px; background:#fff; color:#000; padding:0; overflow:hidden;">
+      <div class="modal-header" style="border-bottom:1px dashed #000; background:#fff; padding:12px 16px;">
+        <div class="modal-title" style="color:#000; font-family: 'Courier New', monospace; font-size:13px;">INCLINEWORKS — RECEIPT</div>
+        <button class="modal-close" onclick="closeReceiptModal()" style="color:#000;">✕</button>
+      </div>
+      <div id="receiptContent" style="overflow-y:auto; max-height:60vh; padding:0 4px; background:#fff;"></div>
+      <div style="padding:14px 16px; border-top:1px dashed #000; display:flex; gap:8px; background:#fff; flex-wrap:wrap;">
+        <button onclick="closeReceiptModal()" style="flex:1;padding:10px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-family:monospace;font-size:12px;">Close</button>
+        <button onclick="printReceipt()" style="flex:1;padding:10px;background:#000;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:monospace;font-size:12px;">🖨 Print</button>
+        <button onclick="shareReceiptAsPDF(_lastReceiptTask)" style="flex:1;padding:10px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:monospace;font-size:12px;">📤 PDF</button>
+        <button onclick="whatsappReceipt(_lastReceiptTask)" style="flex:1;padding:10px;background:#25D366;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:monospace;font-size:12px;">WhatsApp</button>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-left">
+  <button id="mobileMenuBtn" class="mobile-toggle" style="display:none; background:var(--surface); border:1px solid var(--border); color:var(--green); padding:8px 12px; border-radius:6px; margin-right:15px; cursor:pointer;">☰</button>
+</div>
+</body>
+</html>
