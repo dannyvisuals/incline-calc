@@ -470,15 +470,7 @@ function toAddService(){
   const container=document.getElementById('to-services-list');
   const div=document.createElement('div');
   div.className='to-svc-row'; div.id='to-svc-'+idx;
-  // Build options from live SERVICES array (synced with admin prices)
-  const opts=SERVICES.map(s=>'<option value="'+s.name+'" data-price="'+s.price+'">'+s.name+' — ₦'+s.price.toLocaleString()+'</option>').join('');
-  const optGroups={};
-  SERVICES.forEach(s=>{
-    if(!optGroups[s.cat]) optGroups[s.cat]=[];
-    optGroups[s.cat].push('<option value="'+s.name+'" data-price="'+s.price+'">'+s.name+' — ₦'+s.price.toLocaleString()+'</option>');
-  });
-  const groupedOpts=Object.entries(optGroups).map(([cat,items])=>'<optgroup label="'+cat+'">'+items.join('')+'</optgroup>').join('');
-  div.innerHTML='<select onchange="toServiceChange('+idx+',this)"><option value="">— Select Service —</option>'+groupedOpts+'</select>'
+  div.innerHTML='<select class="to-svc-select" onchange="toServiceChange('+idx+',this)">'+buildOptions('')+'</select>'
     +'<input type="number" min="1" value="1" oninput="toQtyChange('+idx+',this)" title="Quantity"/>'
     +'<span class="to-svc-subtotal" id="to-svc-sub-'+idx+'">₦0</span>'
     +'<button class="to-svc-remove" onclick="toRemoveService('+idx+')" title="Remove"><i class="fa-solid fa-xmark"></i></button>';
@@ -486,10 +478,9 @@ function toAddService(){
 }
 function toServiceChange(idx,sel){
   const name = sel.value;
-  const opt = sel.options[sel.selectedIndex];
-  const price = opt ? (parseFloat(opt.getAttribute('data-price')) || 0) : 0;
+  const svc  = SERVICES.find(s => s.name === name);
   toServiceRows[idx].service = name;
-  toServiceRows[idx].price = price || (SERVICES.find(s=>s.name===name)||{price:0}).price || 0;
+  toServiceRows[idx].price   = svc ? svc.price : 0;
   toCalc();
 }
 function toQtyChange(idx,input){ toServiceRows[idx].qty=parseInt(input.value)||1; toCalc(); }
@@ -892,19 +883,6 @@ function getPrices() {
 
 let SERVICES = getPrices();
 let orderStatus = "Pending";
-
-/* loadPricesFromSupabase — fetches from Appwrite and updates SERVICES + localStorage */
-async function loadPricesFromSupabase() {
-  try {
-    const data = await sbGetPrices();
-    if (data && data.length) {
-      SERVICES = data.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
-      localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
-      if (typeof _lastFetch !== 'undefined') _lastFetch.prices = Date.now();
-    }
-  } catch(e) { console.warn('loadPricesFromSupabase:', e); }
-}
-
 // ══ ADMIN RELOAD ══
 // ── Load all data from Supabase (global so reload can call it) ──
 async function refreshStaffFromSupabase() {
@@ -955,7 +933,8 @@ async function initFromSupabase() {
       refreshLoansFromSupabase()
     ]);
 
-    if (prices && prices.length) {
+    var _ps1 = parseInt(localStorage.getItem('incline_prices_saved_at') || '0', 10);
+    if (prices && prices.length && !(_ps1 && Date.now() - _ps1 < 300000)) {
       SERVICES = prices.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
       localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
     }
@@ -1000,7 +979,8 @@ async function reloadAdminData() {
       refreshLoansFromSupabase().catch(function(e){ console.warn('Loans fetch failed:', e); })
     ]);
 
-    if (prices && prices.length) {
+    var _ps2 = parseInt(localStorage.getItem('incline_prices_saved_at') || '0', 10);
+    if (prices && prices.length && !(_ps2 && Date.now() - _ps2 < 300000)) {
       SERVICES = prices.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
       localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
     }
@@ -1056,20 +1036,25 @@ function setupRealtimeSync() {
       } else if (table === 'loans') {
         await refreshLoansFromSupabase();
       } else if (table === 'prices') {
-        const prices = await sbGetPrices();
-        if (prices && prices.length) {
-          SERVICES = prices.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
-          localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
+        var _ps3 = parseInt(localStorage.getItem('incline_prices_saved_at') || '0', 10);
+        if (!(_ps3 && Date.now() - _ps3 < 300000)) {
+          const prices = await sbGetPrices();
+          if (prices && prices.length) {
+            SERVICES = prices.map(p => ({ name: p.name, cat: p.cat, price: p.price, custom: p.custom || false }));
+            localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
+          }
         }
       }
 
       // Re-render whichever tab is visible right now
+      var _ps3b = parseInt(localStorage.getItem('incline_prices_saved_at') || '0', 10);
+      var _pricesRecent = (table === 'prices') && (_ps3b && Date.now() - _ps3b < 300000);
       const activeTab = ($('.sidenav__item--active').data('tab') || document.querySelector('.tab-panel[style*="flex"]')?.id?.replace('panel-',''));
       if      (activeTab === 'orders')      renderOrdersTable();
       else if (activeTab === 'outstanding') { renderOutstandingTable(); updateAlumniBadge(); populateLoanStaffDropdown(); }
       else if (activeTab === 'reports')     renderStaffCards();
       else if (activeTab === 'staff')       renderAdminStaffList();
-      else if (activeTab === 'admin')       renderAdminPanel();
+      else if (activeTab === 'admin' && !_pricesRecent) renderAdminPanel();
       updateAlumniBadge();
 
       // Visual flash on the logo so the admin sees a live update happened
@@ -1971,6 +1956,18 @@ function renderAdminPanel() {
         </tr>`);
     });
   });
+
+  // Per-input debounce — only saves the single item that changed
+  document.querySelectorAll('.admin-price-input').forEach(function(inp) {
+    var _t = null;
+    inp.addEventListener('input', function() {
+      clearTimeout(_t);
+      var s = document.getElementById('adminSaveStatus');
+      if (s) s.textContent = 'Unsaved changes…';
+      var name = inp.getAttribute('data-name');
+      _t = setTimeout(function() { saveSinglePrice(name, parseFloat(inp.value) || 0); }, 800);
+    });
+  });
 }
 
 async function deleteCustomService(name) {
@@ -1992,8 +1989,50 @@ async function deleteCustomService(name) {
   showToast('🗑 "' + name + '" removed.');
 }
 
+// Saves only the single service that was just edited — fast, no sequential writes
+async function saveSinglePrice(name, price) {
+  // 1. Update SERVICES in memory
+  var svc = SERVICES.find(function(s) { return s.name === name; });
+  if (!svc) return;
+  svc.price = price;
+
+  // 2. Persist to localStorage + stamp guard
+  localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
+  localStorage.setItem('incline_prices_saved_at', String(Date.now()));
+
+  // 3. Status feedback
+  var statusEl = document.getElementById('adminSaveStatus');
+  if (statusEl) statusEl.textContent = 'Saving…';
+
+  // 4. Push only this one item to Appwrite
+  try {
+    const existing = await sbGetPrices();
+    const match = existing ? existing.find(function(p) { return p.name === name; }) : null;
+    const data = { name: svc.name, cat: svc.cat, price: Number(svc.price), custom: !!svc.custom };
+    if (match) {
+      await _awDbs.updateDocument(AW_DB_ID, AW_COL.prices, match.id, data);
+    } else {
+      await _awDbs.createDocument(AW_DB_ID, AW_COL.prices, Appwrite.ID.unique(), data);
+    }
+    // Re-stamp after cloud confirms write so guard stays fresh from completion
+    localStorage.setItem('incline_prices_saved_at', String(Date.now()));
+    var s2 = document.getElementById('adminSaveStatus');
+    if (s2) s2.textContent = 'Saved ✓ ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('saveSinglePrice failed:', e);
+    var s2 = document.getElementById('adminSaveStatus');
+    if (s2) s2.textContent = '⚠️ Saved locally';
+  }
+
+  // 5. Reflect in calculators immediately
+  applyPricesToCalculators();
+  window.dispatchEvent(new Event('incline_prices_updated'));
+}
+
 async function saveAllPrices() {
   // 1. Read every price input into SERVICES
+  // NOTE: do NOT call renderAdminPanel() here — it destroys the inputs
+  // and detaches statusEl so the save feedback never shows
   document.querySelectorAll('.admin-price-input').forEach(function(inp) {
     var name  = inp.getAttribute('data-name');
     var price = parseFloat(inp.value) || 0;
@@ -2001,35 +2040,54 @@ async function saveAllPrices() {
     if (svc) svc.price = price;
   });
 
-  // 2. Save to localStorage right away
+  // 2. Save to localStorage + stamp time so cloud fetch won't overwrite
   localStorage.setItem('incline_prices_v2', JSON.stringify(SERVICES));
+  localStorage.setItem('incline_prices_saved_at', String(Date.now()));
 
-  // 3. Re-render price list so user sees their new values immediately
-  renderAdminPanel();
-
-  // 4. Update the status label
+  // 3. Status label
   var statusEl = document.getElementById('adminSaveStatus');
-  if (statusEl) statusEl.textContent = 'Saving...';
+  if (statusEl) statusEl.textContent = 'Saving…';
 
-  // 5. Push to Appwrite (fire and forget)
-  sbSavePrices(SERVICES).then(function() {
-    if (statusEl) statusEl.textContent = 'Saved at ' + new Date().toLocaleTimeString();
+  // 4. Push all to Appwrite (manual Save All button only)
+  await sbSavePrices(SERVICES).then(function() {
+    localStorage.setItem('incline_prices_saved_at', String(Date.now()));
+    var s2 = document.getElementById('adminSaveStatus');
+    if (s2) s2.textContent = 'Saved ✓ ' + new Date().toLocaleTimeString();
     showToast('✅ Prices saved!');
   }).catch(function(e) {
     console.error('Prices sync failed:', e);
-    if (statusEl) statusEl.textContent = 'Sync failed - stored locally';
+    var s2 = document.getElementById('adminSaveStatus');
+    if (s2) s2.textContent = '⚠️ Saved locally';
     showToast('⚠️ Saved locally, cloud sync failed');
   });
 
-  // 6. Refresh task-order dropdowns so calculator uses new prices
+  // 5. Push new prices into both calculators
+  applyPricesToCalculators();
+
+  // 6. Notify other tabs
+  window.dispatchEvent(new Event('incline_prices_updated'));
+}
+function applyPricesToCalculators() {
   document.querySelectorAll('#to-services-list .to-svc-select').forEach(function(sel) {
     sel.innerHTML = buildOptions(sel.value);
   });
+  if (Array.isArray(toServiceRows)) {
+    toServiceRows.forEach(function(row) {
+      if (!row || !row.service) return;
+      var svc = SERVICES.find(function(s){ return s.name === row.service; });
+      if (svc) row.price = svc.price;
+    });
+  }
   if (typeof toCalc === 'function') toCalc();
-
-  // 7. Notify other tabs
-  window.dispatchEvent(new Event('incline_prices_updated'));
+  document.querySelectorAll('#servicesContainer .svc-select').forEach(function(sel) {
+    sel.innerHTML = buildOptions(sel.value);
+  });
+  if (typeof calcTotals === 'function') calcTotals();
 }
+
+window.addEventListener('incline_prices_updated', function() {
+  if (typeof applyPricesToCalculators === 'function') applyPricesToCalculators();
+});
 function buildOptions(selected) {
   let html = '<option value="">— Select Service —</option>';
   let lastCat = '';
@@ -3720,11 +3778,11 @@ function renderOutstandingTable() {
             View Profile
           </button>
           ${o.source==='manual' ? `
-          <button class="ob-action-btn ob-action-edit" onclick="openEditDebt(${o.id})">
+          <button class="ob-action-btn ob-action-edit" onclick="openEditDebt('${o.id}')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit
           </button>
-          <button class="ob-action-btn ob-action-del" onclick="deleteDebt(${o.id})">
+          <button class="ob-action-btn ob-action-del" onclick="deleteDebt('${o.id}')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
             Remove
           </button>` : ''}
@@ -3745,7 +3803,7 @@ function renderOutstandingTable() {
 let _pvId = null;
 
 function viewDebt(id) {
-  _pvId = id;
+  _pvId = String(id);
   renderProfileView(id);
   $('#os-main').hide();
   $('#os-profile').show();
@@ -3852,8 +3910,25 @@ function renderProfileView(id) {
         <div style="text-align:right;font-size:13px;font-weight:600;color:${!isCredit?'var(--red)':'transparent'};">${!isCredit?'₦'+p.amount.toLocaleString():'—'}</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:${p.running>0?'var(--text)':'var(--green)'};">₦${p.running.toLocaleString()}</div>
         <div style="display:flex;gap:4px;justify-content:center;align-items:center;">
-          <button onclick="openEditTx(${id},${i})" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:rgba(16,185,129,0.7);cursor:pointer;font-size:11px;padding:3px 7px;border-radius:5px;line-height:1;transition:all 0.15s;" onmouseenter="this.style.background='rgba(16,185,129,0.18)';this.style.color='var(--green)'" onmouseleave="this.style.background='rgba(16,185,129,0.08)';this.style.color='rgba(16,185,129,0.7)'">✏️</button>
-          <button onclick="deleteTx(${id},${i})" style="background:none;border:none;color:rgba(224,82,82,0.3);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px;line-height:1;transition:color 0.2s;" onmouseenter="this.style.color='var(--red)'" onmouseleave="this.style.color='rgba(224,82,82,0.3)'">✕</button>
+          <button onclick="openInlineTxEdit('${debt.id}',${i})" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:rgba(16,185,129,0.7);cursor:pointer;font-size:11px;padding:3px 7px;border-radius:5px;line-height:1;transition:all 0.15s;" onmouseenter="this.style.background='rgba(16,185,129,0.18)';this.style.color='var(--green)'" onmouseleave="this.style.background='rgba(16,185,129,0.08)';this.style.color='rgba(16,185,129,0.7)'">✏️</button>
+          <button onclick="deleteTx('${debt.id}',${i})" style="background:none;border:none;color:rgba(224,82,82,0.3);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px;line-height:1;transition:color 0.2s;" onmouseenter="this.style.color='var(--red)'" onmouseleave="this.style.color='rgba(224,82,82,0.3)'">✕</button>
+        </div>
+      </div>
+      <div id="tx-edit-${i}" style="display:none;padding:12px 16px;background:rgba(16,185,129,0.04);border-top:1px solid rgba(16,185,129,0.12);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(16,185,129,0.6);margin-bottom:10px;">${isCredit?'📥 CREDIT':'📤 DEBIT'} · Row ${i+1}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+          <div style="flex:1;min-width:100px;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:4px;">Amount (₦)</div>
+            <input type="number" id="itx-amount-${i}" value="${p.amount}" min="0" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(16,185,129,0.3);color:var(--text);border-radius:8px;padding:8px 10px;font-size:14px;font-weight:700;outline:none;"/></div>
+          <div style="flex:1;min-width:120px;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:4px;">Date</div>
+            <input type="date" id="itx-date-${i}" value="${p.date?p.date.slice(0,10):''}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px;outline:none;"/></div>
+          <div style="flex:1;min-width:90px;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:4px;">Time</div>
+            <input type="time" id="itx-time-${i}" value="${p.date&&p.date.includes('T')?p.date.slice(11,16):''}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px;outline:none;"/></div>
+          <div style="flex:2;min-width:140px;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:4px;">Note</div>
+            <input type="text" id="itx-note-${i}" value="${(p.note||'').replace(/"/g,'&quot;')}" placeholder="Note…" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px;outline:none;"/></div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="saveInlineTxEdit('${debt.id}',${i})" style="background:var(--gold);border:none;color:#0a0f0a;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">💾 Save</button>
+            <button onclick="document.getElementById('tx-edit-${i}').style.display='none'" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;">✕</button>
+          </div>
         </div>
       </div>
     `;
@@ -3947,13 +4022,59 @@ function pvUseInCalc() {
 var _editTxDebtId = null;
 var _editTxIdx    = null;
 
+function openInlineTxEdit(debtId, idx) {
+  document.querySelectorAll('[id^="tx-edit-"]').forEach(function(el){ el.style.display='none'; });
+  var row = document.getElementById('tx-edit-'+idx);
+  if (!row) return;
+  row.style.display = 'block';
+  var a = document.getElementById('itx-amount-'+idx);
+  if (a) setTimeout(function(){ a.focus(); a.select(); }, 50);
+}
+
+async function saveInlineTxEdit(debtId, txIdx) {
+  var amount = parseFloat((document.getElementById('itx-amount-'+txIdx)||{}).value);
+  if (!amount || amount <= 0) { showToast('⚠️ Enter a valid amount'); return; }
+  var dateVal = ((document.getElementById('itx-date-'+txIdx)||{}).value)||'';
+  var timeVal = ((document.getElementById('itx-time-'+txIdx)||{}).value)||'';
+  var note    = (((document.getElementById('itx-note-'+txIdx)||{}).value)||'').trim();
+  if (!dateVal) { showToast('⚠️ Pick a date'); return; }
+  var newDate = timeVal ? dateVal+'T'+timeVal : dateVal;
+  var debts = getManualDebts();
+  var debt  = debts.find(function(d){ return String(d.id)===String(debtId); });
+  // If not found locally, refresh cache from Appwrite then retry
+  if (!debt) {
+    try {
+      await refreshLoansFromSupabase();
+      debts = getManualDebts();
+      debt  = debts.find(function(d){ return String(d.id)===String(debtId); });
+    } catch(e) { console.warn('saveInlineTxEdit fetch failed:', e); }
+  }
+  if (!debt) { showToast('⚠️ Loan not found — try refreshing the page'); return; }
+  var tx = (debt.payments||[])[txIdx];
+  if (!tx) { showToast('⚠️ Transaction not found'); return; }
+  tx.amount = amount;
+  tx.date   = newDate;
+  if (note) tx.note = note;
+  var bal = 0;
+  (debt.payments||[]).forEach(function(p){ bal += p.type==='credit' ? p.amount : -p.amount; });
+  debt.balance = Math.max(0, bal);
+  debt.status  = debt.balance <= 0 ? 'Paid' : 'Outstanding';
+  localStorage.setItem('incline_manual_debts', JSON.stringify(debts));
+  sbUpdateLoan(debt).catch(function(e){ console.error('Tx edit sync failed:',e); });
+  renderProfileView(String(debtId));
+  renderOutstandingTable();
+  if (typeof updateAlumniBadge==='function') updateAlumniBadge();
+  showToast('✅ Transaction updated!');
+}
+
+
 function openEditTx(debtId, txIdx) {
-  const debt = getManualDebts().find(d => d.id === debtId);
+  const debt = getManualDebts().find(d => String(d.id) === String(debtId));
   if (!debt) return;
   const tx = (debt.payments || [])[txIdx];
   if (!tx) return;
 
-  _editTxDebtId = debtId;
+  _editTxDebtId = String(debtId);
   _editTxIdx    = txIdx;
 
   // Type label
@@ -4002,7 +4123,7 @@ function saveEditTx() {
   btn.textContent = 'Saving...'; btn.disabled = true;
 
   const debts = getManualDebts();
-  const debt  = debts.find(d => d.id === _editTxDebtId);
+  const debt  = debts.find(d => String(d.id) === String(_editTxDebtId));
   if (!debt) { btn.textContent = '💾 Save Changes'; btn.disabled = false; return; }
 
   const tx = (debt.payments || [])[_editTxIdx];
@@ -4050,7 +4171,7 @@ async function deleteTx(debtId, txIdx) {
   });
   if (!_rt) return;
   const debts = getManualDebts();
-  const debt  = debts.find(d => d.id === debtId);
+  const debt  = debts.find(d => String(d.id) === String(debtId));
   if (!debt || !debt.payments) return;
   debt.payments.splice(txIdx, 1);
   // Recalculate balance from scratch
@@ -4065,17 +4186,29 @@ async function deleteTx(debtId, txIdx) {
 }
 
 // ── Edit profile ──
-function openEditDebt(idArg) {
+async function openEditDebt(idArg) {
   // Accept id directly (from card) or fall back to _pvId (from profile view)
-  const id   = idArg !== undefined ? idArg : _pvId;
-  const debt = getManualDebts().find(d => d.id === id);
-  if (!debt) return;
+  const id = idArg !== undefined ? String(idArg) : String(_pvId);
+
+  // 1. Try localStorage first (fast path)
+  let debt = getManualDebts().find(d => String(d.id) === id);
+
+  // 2. If not found, refresh cache from Appwrite then retry
+  if (!debt) {
+    try {
+      await refreshLoansFromSupabase();
+      debt = getManualDebts().find(d => String(d.id) === id);
+    } catch(e) { console.warn('openEditDebt fetch failed:', e); }
+  }
+
+  if (!debt) { showToast('⚠️ Could not load loan — try refreshing'); console.warn('openEditDebt: loan not found for id', id); return; }
 
   // Keep track of which loan we're editing
-  _pvId = id;
+  _pvId = String(debt.id);
 
   // Loan ID badge
-  document.getElementById('edit-loan-id-badge').textContent = 'Loan ID: #' + id;
+  var badge = document.getElementById('edit-loan-id-badge');
+  if (badge) badge.textContent = 'Loan ID: #' + id;
 
   // Populate staff dropdown
   const sel = document.getElementById('edit-staff-select');
@@ -4158,7 +4291,7 @@ function saveEditDebt() {
   $('#edit-phone-error').hide();
 
   const debts = getManualDebts();
-  const debt  = debts.find(d => d.id === _pvId);
+  const debt  = debts.find(d => String(d.id) === String(_pvId));
   if (!debt) return;
 
   const btn = document.getElementById('editDebtSaveBtn');
@@ -4795,7 +4928,7 @@ async function deleteDebt(id) {
   if (!_dd) return;
   // Stay exactly where the user is — no scroll, no tab switch
   var scrollPos = window.scrollY;
-  localStorage.setItem('incline_manual_debts', JSON.stringify(getManualDebts().filter(d => d.id !== id)));
+  localStorage.setItem('incline_manual_debts', JSON.stringify(getManualDebts().filter(d => String(d.id) !== String(id))));
   sbDeleteLoan(id).catch(e => console.error('Loan delete sync failed:', e));
   renderOutstandingTable();
   updateAlumniBadge();
@@ -4913,9 +5046,9 @@ function renderAlumniTable() {
         </div>
         <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--surface3);">
           <button class="tbl-btn" onclick="viewDebt('${d.id}')">👁 View Profile</button>
-          <button class="tbl-btn" style="color:var(--gold);border-color:rgba(16,185,129,0.3);" onclick="openEditDebt(${d.id})">✏️ Edit</button>
-          <button class="tbl-btn" style="background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3);" onclick="reactivateDebt(${d.id})">🔄 Re-Activate Loan</button>
-          <button class="tbl-btn danger" onclick="permanentDeleteDebt(${d.id})">🗑 Delete</button>
+          <button class="tbl-btn" style="color:var(--gold);border-color:rgba(16,185,129,0.3);" onclick="openEditDebt('${d.id}')">✏️ Edit</button>
+          <button class="tbl-btn" style="background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3);" onclick="reactivateDebt('${d.id}')">🔄 Re-Activate Loan</button>
+          <button class="tbl-btn danger" onclick="permanentDeleteDebt('${d.id}')">🗑 Delete</button>
         </div>
       </div>
     `;
@@ -5588,11 +5721,17 @@ function openEditStaff(id) {
   document.getElementById('editStaffBio').value        = s.bio || '';
   // New fields
   var _g = function(id, val) { var el=document.getElementById(id); if(el) el.value = val||''; };
-  _g('editStaffNokName',       s.nokName);
-  _g('editStaffNokPhone',      s.nokPhone);
-  _g('editStaffGuarantorName', s.guarantorName);
-  _g('editStaffGuarantorPhone',s.guarantorPhone);
-  _g('editStaffLocation',      s.location);
+  _g('editStaffNOKName',        s.nokName);
+  _g('editStaffNOKPhone1',      s.nokPhone);
+  _g('editStaffNOKPhone2',      s.nokPhone2 || '');
+  _g('editStaffNokName',        s.nokName);      // fallback for old ID
+  _g('editStaffNokPhone',       s.nokPhone);     // fallback for old ID
+  _g('editStaffGuarantorName',  s.guarantorName);
+  _g('editStaffGuarantorPhone1',s.guarantorPhone);
+  _g('editStaffGuarantorPhone2',s.guarantorPhone2 || '');
+  _g('editStaffGuarantorPhone', s.guarantorPhone);  // fallback for old ID
+  _g('editStaffGuarantorAddress', s.guarantorAddr || '');
+  _g('editStaffLocation',       s.location);
 
   // Set gender buttons
   setEditGender(s.gender || '');
@@ -5697,10 +5836,13 @@ async function saveEditStaff() {
   const acctNum  = document.getElementById('editStaffAcctNum').value.trim();
   const acctName = document.getElementById('editStaffAcctName').value.trim();
   const bio      = document.getElementById('editStaffBio').value.trim();
-  const nokName        = document.getElementById('editStaffNokName') ? document.getElementById('editStaffNokName').value.trim() : '';
-  const nokPhone       = document.getElementById('editStaffNokPhone') ? document.getElementById('editStaffNokPhone').value.trim() : '';
+  const nokName        = document.getElementById('editStaffNOKName') ? document.getElementById('editStaffNOKName').value.trim() : '';
+  const nokPhone       = document.getElementById('editStaffNOKPhone1') ? document.getElementById('editStaffNOKPhone1').value.trim() : (document.getElementById('editStaffNokPhone') ? document.getElementById('editStaffNokPhone').value.trim() : '');
+  const nokPhone2      = document.getElementById('editStaffNOKPhone2') ? document.getElementById('editStaffNOKPhone2').value.trim() : '';
   const guarantorName  = document.getElementById('editStaffGuarantorName') ? document.getElementById('editStaffGuarantorName').value.trim() : '';
-  const guarantorPhone = document.getElementById('editStaffGuarantorPhone') ? document.getElementById('editStaffGuarantorPhone').value.trim() : '';
+  const guarantorPhone = document.getElementById('editStaffGuarantorPhone1') ? document.getElementById('editStaffGuarantorPhone1').value.trim() : (document.getElementById('editStaffGuarantorPhone') ? document.getElementById('editStaffGuarantorPhone').value.trim() : '');
+  const guarantorPhone2= document.getElementById('editStaffGuarantorPhone2') ? document.getElementById('editStaffGuarantorPhone2').value.trim() : '';
+  const guarantorAddr  = document.getElementById('editStaffGuarantorAddress') ? document.getElementById('editStaffGuarantorAddress').value.trim() : '';
   const location       = document.getElementById('editStaffLocation') ? document.getElementById('editStaffLocation').value.trim() : '';
 
   if (!name)    { showToast('⚠️ Name is required'); return; }
