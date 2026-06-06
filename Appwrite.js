@@ -189,32 +189,49 @@ async function sbGetPrices() {
 }
 
 async function sbSavePrices(services) {
-  // Appwrite doc IDs cannot have spaces or special chars - derive a safe ID from the name
-  function _safeId(name) {
-    return name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 36);
-  }
   try {
+
+    const existing = await sbGetPrices();
+
     for (const s of services) {
-      const docId = _safeId(s.name);
-      const data  = { name: s.name, cat: s.cat, price: s.price, custom: s.custom || false };
-      try {
-        await _awDbs.updateDocument(AW_DB_ID, AW_COL.prices, docId, data);
-      } catch(_) {
-        try {
-          await _awDbs.createDocument(AW_DB_ID, AW_COL.prices, docId, data);
-        } catch(e2) { console.warn('sbSavePrices item failed:', s.name, e2.message); }
+
+      const match = existing.find(
+        p => p.name === s.name
+      );
+
+      const data = {
+        name: s.name,
+        cat: s.cat,
+        price: Number(s.price),
+        custom: !!s.custom
+      };
+
+      if (match) {
+
+        await _awDbs.updateDocument(
+          AW_DB_ID,
+          AW_COL.prices,
+          match.id,
+          data
+        );
+
+      } else {
+
+        await _awDbs.createDocument(
+          AW_DB_ID,
+          AW_COL.prices,
+          Appwrite.ID.unique(),
+          data
+        );
+
       }
+
     }
-  } catch(e) { console.warn('sbSavePrices:', e); }
-}
 
-async function sbDeletePrice(name) {
-  try {
-    const docId = name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 36);
-    await _awDbs.deleteDocument(AW_DB_ID, AW_COL.prices, docId);
-  } catch(e) { console.warn('sbDeletePrice:', e); }
+  } catch (e) {
+    console.error('sbSavePrices failed:', e);
+  }
 }
-
 
 /* ══════════════════════════════════════════════════════════════════
    LOANS
@@ -462,13 +479,20 @@ async function awUploadFile(file, fileId) {
 }
 
 function awGetFileURL(fileId) {
-  return _awStorage.getFileView(AW_BUCKET_ID, fileId).toString();
+  if (!fileId) return null;
+  // Build the URL directly — works without auth if bucket has Any-Read permission
+  return AW_ENDPOINT + '/storage/buckets/' + AW_BUCKET_ID + '/files/' + fileId + '/view?project=' + AW_PROJECT_ID;
 }
 
 async function awDeleteFile(fileId) {
   try { await _awStorage.deleteFile(AW_BUCKET_ID, fileId); return true; }
   catch(e) { console.warn('awDeleteFile:', e); return false; }
 }
+
+/* ── Aliases so script.js sb* calls resolve to the aw* functions above ── */
+async function sbUploadFile(fileId, file) { return awUploadFile(file, fileId); }
+function sbGetFileUrl(fileId)             { return awGetFileURL(fileId); }
+async function sbDeleteFile(fileId)       { return awDeleteFile(fileId); }
 
 
 /* ══════════════════════════════════════════════════════════════════
