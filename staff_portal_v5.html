@@ -430,57 +430,102 @@
     </div>
   </div>
 
-  <!-- THERMAL RECEIPT (hidden, for print/share) -->
+  <!-- THERMAL RECEIPT (single source of truth — used for on-screen preview, print, PDF & WhatsApp share) -->
   <div id="thermalReceipt">
-    <div class="tr-c tr-b" style="font-size:15px;">INCLINEWORKS INT'L</div>
-    <div class="tr-c" style="font-size:10px;">PROFESSIONAL TAILORING SERVICES</div>
+    <div class="tr-logo-wrap"><img src="logo.PNG" alt="InclineWorks" class="tr-logo"></div>
+    <div class="tr-c tr-b tr-brand">INCLINEWORKS INT'L</div>
+    <div class="tr-c tr-tagline">PROFESSIONAL TAILORING &amp; DESIGN SERVICES</div>
+    <div class="tr-c tr-addr">Port Harcourt, Rivers State, Nigeria</div>
     <div class="tr-div"></div>
-    <div class="tr-c tr-b" id="tr-receipt"></div>
-    <div class="tr-c" style="font-size:10px;" id="tr-date"></div>
+    <div class="tr-c tr-b" id="tr-receipt" style="font-size:14px;"></div>
+    <div class="tr-c tr-meta" id="tr-date"></div>
     <div class="tr-div"></div>
-    <div class="tr-row"><span>Staff:</span><span id="tr-staff"></span></div>
-    <div class="tr-row"><span>ID:</span><span id="tr-staffid"></span></div>
-    <div class="tr-row"><span>Task:</span><span id="tr-task"></span></div>
-    <div class="tr-row"><span>Due:</span><span id="tr-due"></span></div>
-    <div class="tr-div"></div>
-    <div class="tr-b" style="margin-bottom:4px;">ITEMS</div>
+    <div class="tr-row"><span>Staff</span><span id="tr-staff"></span></div>
+    <div class="tr-row"><span>Staff ID</span><span id="tr-staffid"></span></div>
+    <div class="tr-row"><span>Task ID</span><span id="tr-task"></span></div>
+    <div class="tr-row"><span>Due Date</span><span id="tr-due"></span></div>
+    <div class="tr-div2"></div>
+    <div class="tr-items-head">
+      <span class="tr-col-item">ITEM</span><span class="tr-col-qty">QTY</span><span class="tr-col-price">PRICE</span><span class="tr-col-total">TOTAL</span>
+    </div>
     <div id="tr-items"></div>
     <div class="tr-div2"></div>
-    <div class="tr-row"><span>SUBTOTAL:</span><span id="tr-subtotal"></span></div>
-    <div class="tr-row tr-b"><span>TOTAL:</span><span id="tr-total"></span></div>
+    <div class="tr-row"><span>Subtotal</span><span id="tr-subtotal"></span></div>
+    <div class="tr-row" id="tr-deposit-row"><span>Deposit Paid</span><span id="tr-deposit"></span></div>
     <div class="tr-div"></div>
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:2px;">BANK TRANSFER</div>
-    <div class="tr-row"><span>Bank:</span><span id="tr-bank"></span></div>
-    <div class="tr-row"><span>Acc No:</span><span id="tr-accnum"></span></div>
-    <div class="tr-row"><span>Name:</span><span id="tr-accname"></span></div>
+    <div class="tr-row tr-total-row"><span>BALANCE DUE</span><span id="tr-total"></span></div>
     <div class="tr-div"></div>
-    <div class="tr-c" style="font-size:10px;">Thank you for your service!</div>
+    <div class="tr-bank-title">PAYMENT — BANK TRANSFER</div>
+    <div class="tr-row"><span>Bank</span><span id="tr-bank"></span></div>
+    <div class="tr-row"><span>Acc No</span><span id="tr-accnum"></span></div>
+    <div class="tr-row"><span>Acc Name</span><span id="tr-accname"></span></div>
+    <div class="tr-div"></div>
+    <div class="tr-barcode" id="tr-barcode"></div>
+    <div class="tr-c tr-barcode-num" id="tr-barcode-num"></div>
+    <div class="tr-c tr-thanks">*** THANK YOU FOR CHOOSING INCLINEWORKS ***</div>
+    <div class="tr-c tr-footer-note">Keep this receipt for your records</div>
   </div>
 
   <script src="chat_sync.js"></script>
   <script src="staff5.js"></script>
   <style>
-    /* ── Thermal Receipt ── */
+    /* ── Thermal / Walmart-style Receipt ── */
     @media print {
       body > *:not(#thermalReceipt) { display: none !important; }
-      #thermalReceipt { display: block !important; }
+      #thermalReceipt { display: block !important; position: static !important; }
       @page { margin: 0; size: 80mm auto; }
     }
     #thermalReceipt {
-      display: none; font-family: 'Courier New', monospace;
-      font-size: 12px; color: #000; width: 300px;
-      margin: 0 auto; padding: 12px; background: #fff;
+      display: none;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #000;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto;
+      padding: 16px 14px;
+      background: #fff;
+      box-sizing: border-box;
     }
-    @media print {
-      #thermalReceipt { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 300px; margin: 0; }
-    }
+    .tr-logo-wrap { display:flex; justify-content:center; margin-bottom:6px; }
+    .tr-logo { width:52px; height:52px; object-fit:contain; }
+    .tr-brand { font-size:16px; letter-spacing:1px; }
+    .tr-tagline { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#333; margin-top:2px; }
+    .tr-addr { font-size:10px; color:#555; margin-top:1px; }
+    .tr-meta { font-size:10.5px; color:#333; }
     .tr-c  { text-align: center; }
     .tr-b  { font-weight: bold; }
-    .tr-div  { border-top: 1px dashed #000; margin: 5px 0; }
-    .tr-div2 { border-top: 2px solid #000;  margin: 5px 0; }
-    .tr-row  { display: flex; justify-content: space-between; margin: 2px 0; }
-    .tr-item { margin: 3px 0; }
-    .tr-item-line { display: flex; justify-content: space-between; color: #555; font-size: 11px; }
+    .tr-div  { border-top: 1px dashed #000; margin: 7px 0; }
+    .tr-div2 { border-top: 2px solid #000;  margin: 7px 0; }
+    .tr-row  { display: flex; justify-content: space-between; gap:8px; margin: 3px 0; font-size:12px; }
+    .tr-total-row { font-weight:800; font-size:14px; }
+    .tr-bank-title { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#555; margin-bottom:4px; }
+
+    /* Itemized table, Walmart-style columns */
+    .tr-items-head {
+      display:grid; grid-template-columns: 1fr 32px 62px 68px;
+      font-size:10px; font-weight:700; letter-spacing:0.5px; color:#555;
+      margin-bottom:4px; text-transform:uppercase;
+    }
+    .tr-items-head span:not(:first-child) { text-align:right; }
+    .tr-item-row {
+      display:grid; grid-template-columns: 1fr 32px 62px 68px;
+      font-size:12px; margin:3px 0; align-items:start; gap:2px;
+    }
+    .tr-item-row .tr-col-item { text-align:left; word-break:break-word; }
+    .tr-item-row span:not(.tr-col-item) { text-align:right; }
+    @media (max-width: 300px) {
+      .tr-items-head, .tr-item-row { grid-template-columns: 1fr 26px 54px 58px; font-size:11px; }
+    }
+
+    /* Fake barcode footer, Walmart touch */
+    .tr-barcode {
+      height:34px; margin:8px auto 2px; max-width:220px;
+      background-image: repeating-linear-gradient(90deg, #000 0px, #000 2px, transparent 2px, transparent 4px);
+    }
+    .tr-barcode-num { font-size:10px; letter-spacing:3px; color:#333; margin-bottom:6px; }
+    .tr-thanks { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; }
+    .tr-footer-note { font-size:9.5px; color:#777; margin-top:2px; }
 
     /* ── Staff Portal Chat Bubbles ── */
     .wa-msg-row { display:flex; margin:2px 0; }
