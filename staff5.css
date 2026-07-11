@@ -1104,14 +1104,12 @@ textarea { min-height: 100px; }
 
 #receiptContent {
   text-align: left;
-  white-space: pre-wrap;
   font-size: 12.5px;
 }
+/* Print handling lives with #thermalReceipt in staff_portal_v5.html — this modal is
+   hidden on print so the two stylesheets don't fight over the printed page. */
 @media print {
-  body * { visibility: hidden; }
-  #receiptModal, #receiptModal * { visibility: visible; }
-  #receiptModal { position: absolute; left: 0; top: 0; width: 100%; background: #fff; }
-  .modal-close, .modal-footer, button { display: none !important; }
+  #receiptModal { display: none !important; }
 }
 /* ========================
    REVISED RESPONSIVE 
