@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InclineWorks — Staff Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style> 
+    :root {
+      --bg:        #0a0e0a;
+      --bg2:       #0f1510;
+      --bg3:       #141c14;
+      --surface:   #1a231a;
+      --surface2:  #1f2a1f;
+      --border:    #2a3a2a;
+      --green:     #00e676;
+      --green-dim: #00c853;
+      --green-muted: rgba(0,230,118,0.12);
+      --green-glow:  rgba(0,230,118,0.25);
+      --text:      #e8f0e8;
+      --text-dim:  #7a9a7a;
+      --text-muted:#4a6a4a;
+      --red:       #ff4444;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: var(--font-head);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,230,118,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,230,118,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* Glow orb */
+    body::after {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(0,230,118,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── CARD ── */
+    .login-card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      margin: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 44px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,230,118,0.05);
+      animation: slideUp 0.5s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── LOGO ── */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .logo-mark {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: var(--surface2);
+    }
+    .logo-mark img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 2.5px;
+      color: var(--green);
+      line-height: 1.4;
+    }
+
+    /* ── HEADING ── */
+    .login-title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── FORM FIELDS ── */
+    .field {
+      margin-bottom: 20px;
+    }
+
+    .field label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: var(--font-head);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field input::placeholder { color: var(--text-muted); }
+
+    .field input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px var(--green-muted);
+    }
+
+    .field input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(255,68,68,0.1);
+    }
+
+    /* Password eye toggle */
+    .eye-btn {
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 44px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: color 0.2s;
+    }
+
+    .eye-btn:hover { color: var(--green); }
+
+    /* ── ERROR MSG ── */
+    .error-msg {
+      min-height: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--red);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── LOGIN BUTTON ── */
+    .login-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      background: var(--green-dim);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px var(--green-glow);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Loading spinner inside button */
+    .login-btn .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── FOOTER ── */
+    .login-footer {
+      text-align: center;
+      margin-top: 28px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── WELCOME OVERLAY ── */
+    .welcome-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .welcome-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .welcome-logo {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      background: var(--surface2);
+      animation: pulse 1.2s ease infinite;
+    }
+    .welcome-logo img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--green-glow); }
+      50%       { box-shadow: 0 0 0 16px transparent; }
+    }
+
+    .welcome-msg {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .welcome-msg span { color: var(--green); }
+
+    .welcome-sub {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      animation: blink 1.2s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.3; }
+    }
+
+    /* ── ADMIN LINK ── */
+    .admin-link {
+      display: block;
+      margin-top: 20px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .admin-link:hover { color: var(--green); }
+  </style>
+</head>
+<body>
+
+  <!-- ── WELCOME OVERLAY ── -->
+  <div id="welcomeOverlay" class="welcome-overlay">
+    <div class="welcome-logo"><img src="logo.PNG" alt="InclineWorks"></div>
+    <div class="welcome-msg">Welcome, <span id="welcomeName">—</span></div>
+    <div class="welcome-sub">Initializing workspace…</div>
+  </div>
+
+  <!-- ── LOGIN CARD ── -->
+  <div class="login-card" id="loginCard">
+
+    <div class="logo-row">
+      <div class="logo-mark"><img src="logo.PNG" alt="InclineWorks"></div>
+      <div class="logo-text">INCLINE<br>WORKS</div>
+    </div>
+
+    <h1 class="login-title">Staff Sign In</h1>
+    <p class="login-sub">Enter your Staff ID and password to access your portal</p>
+
+    <div class="field">
+      <label>Staff ID</label>
+      <input type="text" id="staffId" placeholder="e.g. IW-005" autocomplete="username"
+             onkeydown="if(event.key==='Enter') document.getElementById('staffPass').focus()">
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="field-wrap">
+        <input type="password" id="staffPass" placeholder="••••••••"
+               style="padding-right:44px;"
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter') doLogin()">
+        <button class="eye-btn" type="button" onclick="toggleEye()" tabindex="-1" id="eyeBtn">👁</button>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+
+    <a class="admin-link" href="index.html">Admin Portal →</a>
+
+    <div class="login-footer">InclineWorks International · Staff Portal</div>
+  </div>
+
+  <script>
+    const AW_ENDPOINT   = 'https://fra.cloud.appwrite.io/v1';
+    const AW_PROJECT_ID = '6a030e6e001906e4bbae';
+    const AW_DB_ID      = '6a030fb6000fd9df0193';
+    const AW_COL_STAFF  = 'staff';
+
+    /* ── EYE TOGGLE ── */
+    let eyeVisible = false;
+    function toggleEye() {
+      eyeVisible = !eyeVisible;
+      const inp = document.getElementById('staffPass');
+      inp.type = eyeVisible ? 'text' : 'password';
+      document.getElementById('eyeBtn').textContent = eyeVisible ? '🙈' : '👁';
+    }
+
+    /* ── LOGIN ── matches old script.js exactly: staff table, staff_id + password columns ── */
+    async function doLogin() {
+      const rawId = document.getElementById('staffId').value.trim().toUpperCase();
+      const pass  = document.getElementById('staffPass').value;
+      const errEl = document.getElementById('errorMsg');
+      const btn   = document.getElementById('loginBtn');
+
+      errEl.textContent = '';
+      ['staffId','staffPass'].forEach(id => document.getElementById(id).classList.remove('error'));
+
+      if (!rawId) { setErr('staffId', 'Please enter your Staff ID.'); return; }
+      if (!pass)  { setErr('staffPass', 'Please enter your password.'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Verifying…';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // never let the button spin forever
+
+      try {
+        /* ── Query Appwrite: match staff_id then verify password ── */
+        const awRes = await fetch(
+          `${AW_ENDPOINT}/databases/${AW_DB_ID}/collections/${AW_COL_STAFF}/documents?queries[]=${encodeURIComponent(JSON.stringify({method:'equal',attribute:'staff_id',values:[rawId]}))}`,
+          {
+            headers: {
+              'X-Appwrite-Project': AW_PROJECT_ID,
+              'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+          }
+        );
+        clearTimeout(timeoutId);
+
+        if (!awRes.ok) {
+          const errBody = await awRes.text().catch(() => '');
+          console.error('Appwrite login query failed:', awRes.status, errBody);
+          if (awRes.status === 401 || awRes.status === 403) {
+            throw new Error('Access denied by server. Ask admin to check Appwrite collection permissions.');
+          }
+          throw new Error('Connection error (status ' + awRes.status + '). Please try again.');
+        }
+        const awData = await awRes.json();
+        const docs = (awData.documents || []);
+
+        if (!docs.length) {
+          throw new Error(`Staff ID "${rawId}" not found. Check the ID and try again.`);
+        }
+        const staffDoc = docs[0];
+        console.log('Staff found:', staffDoc.staff_id, '| stored password:', JSON.stringify(staffDoc.password), '| entered:', JSON.stringify(pass));
+        // Trim both sides to avoid whitespace issues
+        const storedPass = (staffDoc.password || '').trim();
+        const enteredPass = (pass || '').trim();
+        if (storedPass !== enteredPass) {
+          throw new Error('Incorrect password. Please try again.');
+        }
+        const data = [staffDoc];
+
+        /* ── SUCCESS ── */
+        const staff = data[0];
+        const session = {
+          id:            staff.$id || staff.id,
+          staffId:       staff.staff_id,
+          name:          staff.name,
+          phone:         staff.phone || '',
+          position:      staff.position || '',
+          department:    staff.department || '',
+          bankName:      staff.bank_name || '',
+          accountNumber: staff.account_number || '',
+          accountName:   staff.account_name || '',
+          photo:         staff.photo || '',
+          loginAt:       new Date().toISOString()
+        };
+        sessionStorage.setItem('iw_staff_session', JSON.stringify(session));
+
+        document.getElementById('welcomeName').textContent = (staff.name || 'Staff').split(' ')[0];
+        document.getElementById('welcomeOverlay').classList.add('active');
+        document.getElementById('loginCard').style.opacity = '0.3';
+
+        setTimeout(() => { window.location.href = window.location.href.replace(/[^/]*$/, 'staff_portal_v5.html'); }, 2200);
+
+      } catch(e) {
+        clearTimeout(timeoutId);
+        console.error('Login error:', e);
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In';
+        const msg = (e.name === 'AbortError')
+          ? 'Request timed out. Check your internet connection and try again.'
+          : (e.message || 'Login failed. Please try again.');
+        errEl.textContent = '⚠ ' + msg;
+        document.getElementById('staffPass').classList.add('error');
+        document.getElementById('staffPass').value = '';
+        document.getElementById('staffPass').focus();
+      }
+    }
+
+    function setErr(fieldId, msg) {
+      document.getElementById('errorMsg').textContent = '⚠ ' + msg;
+      document.getElementById(fieldId).classList.add('error');
+      document.getElementById(fieldId).focus();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      /* If arriving from a logout, clear any leftover session and stay on login */
+      const fromLogout = sessionStorage.getItem('iw_logged_out');
+      if (fromLogout) {
+        sessionStorage.removeItem('iw_logged_out');
+        sessionStorage.removeItem('iw_staff_session');
+        document.getElementById('staffId').focus();
+        return;
+      }
+      /* Auto-redirect only if already logged in (not from logout) */
+      if (sessionStorage.getItem('iw_staff_session')) {
+        window.location.href = window.location.href.replace(/[^/]*$/, 'staff_portal_v5.html');
+        return;
+      }
+      document.getElementById('staffId').focus();
+    });
+  </script>
+</body>
+</html>
