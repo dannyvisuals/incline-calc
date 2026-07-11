@@ -412,6 +412,9 @@
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>Verifying…';
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // never let the button spin forever
+
       try {
         /* ── Query Appwrite: match staff_id then verify password ── */
         const awRes = await fetch(
@@ -420,10 +423,20 @@
             headers: {
               'X-Appwrite-Project': AW_PROJECT_ID,
               'Content-Type': 'application/json'
-            }
+            },
+            signal: controller.signal
           }
         );
-        if (!awRes.ok) throw new Error('Connection error. Please try again.');
+        clearTimeout(timeoutId);
+
+        if (!awRes.ok) {
+          const errBody = await awRes.text().catch(() => '');
+          console.error('Appwrite login query failed:', awRes.status, errBody);
+          if (awRes.status === 401 || awRes.status === 403) {
+            throw new Error('Access denied by server. Ask admin to check Appwrite collection permissions.');
+          }
+          throw new Error('Connection error (status ' + awRes.status + '). Please try again.');
+        }
         const awData = await awRes.json();
         const docs = (awData.documents || []);
 
@@ -464,9 +477,14 @@
         setTimeout(() => { window.location.href = window.location.href.replace(/[^/]*$/, 'staff_portal_v5.html'); }, 2200);
 
       } catch(e) {
+        clearTimeout(timeoutId);
+        console.error('Login error:', e);
         btn.disabled = false;
         btn.innerHTML = 'Sign In';
-        errEl.textContent = '⚠ ' + (e.message || 'Login failed. Please try again.');
+        const msg = (e.name === 'AbortError')
+          ? 'Request timed out. Check your internet connection and try again.'
+          : (e.message || 'Login failed. Please try again.');
+        errEl.textContent = '⚠ ' + msg;
         document.getElementById('staffPass').classList.add('error');
         document.getElementById('staffPass').value = '';
         document.getElementById('staffPass').focus();
