@@ -943,313 +943,161 @@ function showModal(title, message, buttons) {
 function closeModal() { const o=document.getElementById('globalModal');if(o)o.style.display='none'; }
 
 /* =========================================================
-   RECEIPT — v3 thermal format (populateReceipt → thermalReceipt DOM)
+   RECEIPT — single source of truth (populateReceipt fills #thermalReceipt,
+   which is what gets previewed, printed, PDF'd, and WhatsApp'd — always in sync)
    ========================================================= */
 let _receiptPrintCount = {};
 
 function populateReceipt(t) {
-  const id = t.id || t.task_id || 'x';
-  const pc = (_receiptPrintCount[id] = (_receiptPrintCount[id]||0) + 1);
-  const recNum = (t.receipt_number||'---') + (pc > 1 ? ' [REPRINT #'+pc+']' : '');
-  const svcs = (t.services||[]).filter(s=>s.name);
-  const deposit = parseFloat(t.deposit||t.deduction||0);
-  const balance = parseFloat(t.balance||0);
-  const subtotal = parseFloat(t.subtotal||0);
-
-  document.getElementById('tr-receipt').textContent  = recNum;
-  document.getElementById('tr-date').textContent     = t.order_date || new Date().toLocaleDateString('en-GB');
-  document.getElementById('tr-staff').textContent    = STAFF.name || '---';
-  document.getElementById('tr-staffid').textContent  = STAFF.staffId || '---';
-  document.getElementById('tr-task').textContent     = t.task_id || '---';
-  document.getElementById('tr-due').textContent      = t.due_date || '---';
-  document.getElementById('tr-items').innerHTML = svcs.length
-    ? svcs.map(s => {
-        const up = s.unitPrice||s.price||0;
-        return `<div class="tr-item">
-          <div class="tr-b">${s.name}</div>
-          <div class="tr-item-line"><span>${s.qty||1} x ₦${up.toLocaleString('en-NG')}</span><span>₦${(up*(s.qty||1)).toLocaleString('en-NG')}</span></div>
-        </div>`;
-      }).join('')
-    : '<div class="tr-item" style="font-style:italic;color:#555;">No services</div>';
-  document.getElementById('tr-subtotal').textContent = '₦' + subtotal.toLocaleString('en-NG');
-  document.getElementById('tr-total').textContent    = '₦' + balance.toLocaleString('en-NG');
-  document.getElementById('tr-bank').textContent     = STAFF.bankName || '---';
-  document.getElementById('tr-accnum').textContent   = STAFF.accountNumber || '---';
-  document.getElementById('tr-accname').textContent  = STAFF.accountName || '---';
-}
-
-/* =========================================================
-   FIXED RECEIPT PREVIEW & ACTIONS
-   ========================================================= */
-/* =========================================================
-/* =========================================================
-   BULLETPROOF DIRECT THERMAL FIX (NO CLONES, NO BLANK PAGES)
-   ========================================================= */
-
-function showReceiptPreview(t) {
-  // Defensive check: if task object is completely missing, build a fallback layout
   if (!t) t = {};
-  
-  window._lastReceiptTask = t;
+  const id = t.$id || t.id || t.task_id || ('temp_' + Date.now());
+  const pc = (_receiptPrintCount[id] = (_receiptPrintCount[id] || 0) + 1);
+  const recNum = (t.receipt_number || t.invoice_no || 'REC-' + String(id).substring(0,6).toUpperCase())
+                 + (pc > 1 ? ' [REPRINT #' + pc + ']' : '');
 
-  // 1. Safe Variable Extraction with Default Fallbacks
-  const id = t.$id || t.id || t.task_id || 'temp_' + Date.now();
-  if (!window._receiptPrintCount) window._receiptPrintCount = {};
-  const pc = (window._receiptPrintCount[id] = (window._receiptPrintCount[id] || 0) + 1);
-  
-  const recNum = (t.receipt_number || t.invoice_no || 'REC-' + id.substring(0,6).toUpperCase()) + (pc > 1 ? ' [REPRINT #' + pc + ']' : '');
-  
-  // Safe Array Extract: Check both .services and .items, fallback to empty array
+  // Normalize services/items from admin panel data
   const rawServices = t.services || t.items || [];
   const svcs = Array.isArray(rawServices) ? rawServices.filter(s => s && (s.name || s.service_name)) : [];
-  
-  const deposit = parseFloat(t.deposit || t.deduction || t.amount_paid || 0);
-  const balance = parseFloat(t.balance || t.amount_due || 0);
-  const subtotal = parseFloat(t.subtotal || t.total_amount || (deposit + balance) || 0);
-  const dateStr = t.order_date || t.$createdAt || new Date().toLocaleDateString('en-GB');
-  const dueDateStr = t.due_date || '---';
-  const taskIdDisplay = t.task_id || id.substring(0,8).toUpperCase();
-  const staffName = (window.STAFF && window.STAFF.name) || 'Staff Operator';
 
-  // 2. Generate Safe Itemized List Strings
-  let itemsHtml = '';
-  if (svcs.length > 0) {
-    itemsHtml = svcs.map(s => {
-      const name = s.name || s.service_name || 'Tailoring Item';
-      const qty = parseInt(s.qty || s.quantity || 1, 10);
-      const up = parseFloat(s.unitPrice || s.price || s.rate || 0);
-      const totalLine = up * qty;
-      return `
-        <div style="display:flex !important; justify-content:space-between !important; font-size:13px !important; font-family:monospace !important; margin-bottom:4px !important; color:#000000 !important;">
-          <div style="font-weight:bold !important; max-width:65% !important; text-align:left !important; color:#000000 !important;">${name}</div>
-          <div style="text-align:right !important; color:#000000 !important;">${qty} x ₦${up.toLocaleString('en-NG')}</div>
-        </div>
-        <div style="text-align:right !important; font-size:13px !important; font-family:monospace !important; margin-bottom:8px !important; font-weight:bold !important; color:#000000 !important; border-bottom:1px dashed #000000 !important; padding-bottom:6px !important;">
-          ₦${totalLine.toLocaleString('en-NG')}
-        </div>`;
-    }).join('');
+  // ── CALCULATIVE: always derive correct numbers, never trust a blank/stale field ──
+  const lineItems = svcs.map(s => {
+    const name = s.name || s.service_name || 'Tailoring Item';
+    const qty  = parseInt(s.qty || s.quantity || 1, 10) || 1;
+    const unit = parseFloat(s.unitPrice || s.price || s.rate || 0) || 0;
+    return { name, qty, unit, total: qty * unit };
+  });
+  const computedSubtotal = lineItems.reduce((sum, li) => sum + li.total, 0);
+  const subtotal = parseFloat(t.subtotal) > 0 ? parseFloat(t.subtotal) : (computedSubtotal || parseFloat(t.total_amount || 0) || 0);
+  const deposit  = parseFloat(t.deposit || t.deduction || t.amount_paid || 0) || 0;
+  const balance  = parseFloat(t.balance) >= 0 && !isNaN(parseFloat(t.balance)) ? parseFloat(t.balance) : Math.max(subtotal - deposit, 0);
+
+  const dateStr    = t.order_date || (t.$createdAt ? new Date(t.$createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+  const timeStr    = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const dueDateStr = t.due_date || '---';
+  const taskIdDisplay = t.task_id || String(id).substring(0,8).toUpperCase();
+  const staffName  = (window.STAFF && window.STAFF.name) || 'Staff Operator';
+  const staffIdVal = (window.STAFF && window.STAFF.staffId) || '---';
+
+  document.getElementById('tr-receipt').textContent = recNum;
+  document.getElementById('tr-date').textContent     = dateStr + '  ·  ' + timeStr;
+  document.getElementById('tr-staff').textContent    = staffName;
+  document.getElementById('tr-staffid').textContent  = staffIdVal;
+  document.getElementById('tr-task').textContent     = taskIdDisplay;
+  document.getElementById('tr-due').textContent      = dueDateStr;
+
+  const itemsEl = document.getElementById('tr-items');
+  if (lineItems.length) {
+    itemsEl.innerHTML = lineItems.map(li => `
+      <div class="tr-item-row">
+        <span class="tr-col-item">${li.name}</span>
+        <span class="tr-col-qty">${li.qty}</span>
+        <span class="tr-col-price">₦${li.unit.toLocaleString('en-NG')}</span>
+        <span class="tr-col-total">₦${li.total.toLocaleString('en-NG')}</span>
+      </div>`).join('');
   } else {
-    // If no explicit sub-items are mapped inside the task, fall back to showing the task title/details as one total entry
-    itemsHtml = `
-      <div style="display:flex !important; justify-content:space-between !important; font-size:13px !important; font-family:monospace !important; margin-bottom:4px !important; color:#000000 !important;">
-        <div style="font-weight:bold !important; max-width:65% !important; text-align:left !important; color:#000000 !important;">${t.task_name || t.title || 'Tailoring Job Total'}</div>
-        <div style="text-align:right !important; color:#000000 !important;">1 x ₦${subtotal.toLocaleString('en-NG')}</div>
-      </div>
-      <div style="text-align:right !important; font-size:13px !important; font-family:monospace !important; margin-bottom:8px !important; font-weight:bold !important; color:#000000 !important; border-bottom:1px dashed #000000 !important; padding-bottom:6px !important;">
-        ₦${subtotal.toLocaleString('en-NG')}
+    itemsEl.innerHTML = `
+      <div class="tr-item-row">
+        <span class="tr-col-item">${t.task_name || t.title || 'Tailoring Job'}</span>
+        <span class="tr-col-qty">1</span>
+        <span class="tr-col-price">₦${subtotal.toLocaleString('en-NG')}</span>
+        <span class="tr-col-total">₦${subtotal.toLocaleString('en-NG')}</span>
       </div>`;
   }
 
-  // 3. Directly Inject HTML to Target Content Box
-  const contentBox = document.getElementById('receiptContent');
-  if (contentBox) {
-    // Unbind and clear container elements completely
-    contentBox.style.setProperty('display', 'block', 'important');
-    contentBox.style.setProperty('background-color', '#ffffff', 'important');
-    contentBox.style.setProperty('color', '#000000', 'important');
-    contentBox.style.setProperty('visibility', 'visible', 'important');
-    contentBox.style.setProperty('opacity', '1', 'important');
-
-    contentBox.innerHTML = `
-      <div id="visibleThermalReceipt" style="background:#ffffff !important; color:#000000 !important; padding:20px 14px !important; font-family:monospace !important; max-width:100% !important; margin:0 auto !important; text-align:center !important; box-sizing:border-box !important; display:block !important; visibility:visible !important; opacity:1 !important;">
-        
-        <div style="font-size:18px !important; font-weight:800 !important; letter-spacing:1px !important; margin-bottom:4px !important; color:#000000 !important;">INCLINEWORKS</div>
-        <div style="font-size:11px !important; text-transform:uppercase !important; color:#555555 !important; margin-bottom:12px !important;">Tailoring Services & Design</div>
-        
-        <div style="border-top:1px dashed #000000 !important; margin:8px 0 !important;"></div>
-        
-        <div style="text-align:left !important; font-size:12px !important; line-height:1.6 !important; margin-bottom:14px !important; color:#000000 !important;">
-          <div style="color:#000000 !important;"><strong>RECEIPT:</strong> ${recNum}</div>
-          <div style="color:#000000 !important;"><strong>DATE:</strong> ${dateStr}</div>
-          <div style="color:#000000 !important;"><strong>DUE DATE:</strong> ${dueDateStr}</div>
-          <div style="color:#000000 !important;"><strong>STAFF:</strong> ${staffName}</div>
-          <div style="color:#000000 !important;"><strong>TASK ID:</strong> ${taskIdDisplay}</div>
-        </div>
-        
-        <div style="border-top:1px dashed #000000 !important; margin:8px 0 !important; font-weight:bold !important; font-size:12px !important; text-align:left !important; color:#000000 !important; padding-top:4px !important;">ITEMS / SERVICES:</div>
-        <div style="margin-top:8px !important; color:#000000 !important;">
-          ${itemsHtml}
-        </div>
-        
-        <div style="margin-top:14px !important; text-align:left !important; font-size:13px !important; line-height:1.6 !important; color:#000000 !important;">
-          <div style="display:flex !important; justify-content:space-between !important; color:#000000 !important;"><span>Subtotal:</span><span>₦${subtotal.toLocaleString('en-NG')}</span></div>
-          <div style="display:flex !important; justify-content:space-between !important; color:#000000 !important;"><span>Deduction:</span><span>₦${deposit.toLocaleString('en-NG')}</span></div>
-          <div style="display:flex !important; justify-content:space-between !important; font-weight:800 !important; font-size:15px !important; border-top:1px solid #000000 !important; padding-top:6px !important; margin-top:6px !important; color:#000000 !important;">
-            <span>BALANCE DUE:</span><span>₦${balance.toLocaleString('en-NG')}</span>
-          </div>
-        </div>
-        
-        <div style="border-top:1px dashed #000000 !important; margin:20px 0 6px 0 !important;"></div>
-        <div style="font-size:11px !important; color:#333333 !important; font-weight:bold !important; text-transform:uppercase !important; letter-spacing:0.5px !important;">*** Verified Digital Copy ***</div>
-      </div>
-    `;
-  }
-
-  // 4. Force Parent Modal Frame Open
-  const modal = document.getElementById('receiptModal');
-  if (modal) {
-    modal.style.setProperty('display', 'flex', 'important');
-    modal.style.setProperty('visibility', 'visible', 'important');
-    modal.style.setProperty('opacity', '1', 'important');
+  document.getElementById('tr-subtotal').textContent = '₦' + subtotal.toLocaleString('en-NG');
+  const depositRow = document.getElementById('tr-deposit-row');
+  if (deposit > 0) {
+    depositRow.style.display = 'flex';
+    document.getElementById('tr-deposit').textContent = '- ₦' + deposit.toLocaleString('en-NG');
   } else {
-    console.error("Critical: Could not find container element '#receiptModal' in your HTML page.");
+    depositRow.style.display = 'none';
   }
+  document.getElementById('tr-total').textContent = '₦' + balance.toLocaleString('en-NG');
+
+  document.getElementById('tr-bank').textContent    = (window.STAFF && window.STAFF.bankName)      || '---';
+  document.getElementById('tr-accnum').textContent  = (window.STAFF && window.STAFF.accountNumber) || '---';
+  document.getElementById('tr-accname').textContent = (window.STAFF && window.STAFF.accountName)   || '---';
+
+  // Fake barcode, cosmetic — bar widths derived from the receipt number so it looks unique per receipt
+  const barcodeSrc = String(recNum).replace(/[^A-Za-z0-9]/g, '') || 'INCLINEWORKS';
+  let barGradient = 'repeating-linear-gradient(90deg';
+  let pos = 0;
+  for (let i = 0; i < barcodeSrc.length; i++) {
+    const w = 1 + (barcodeSrc.charCodeAt(i) % 3);
+    barGradient += `, #000 ${pos}px, #000 ${pos + w}px, transparent ${pos + w}px, transparent ${pos + w + 2}px`;
+    pos += w + 2;
+  }
+  barGradient += ')';
+  document.getElementById('tr-barcode').style.backgroundImage = barGradient;
+  document.getElementById('tr-barcode-num').textContent = String(recNum).toUpperCase();
+}
+
+function showReceiptPreview(t) {
+  window._lastReceiptTask = t || {};
+  populateReceipt(window._lastReceiptTask);
+
+  // Mirror the exact same markup into the preview modal so what you SEE is what gets printed/shared
+  const contentBox = document.getElementById('receiptContent');
+  const thermal = document.getElementById('thermalReceipt');
+  if (contentBox && thermal) {
+    contentBox.innerHTML = thermal.innerHTML;
+    thermal.querySelectorAll('[id]').forEach(el => {
+      const clone = contentBox.querySelector('#' + el.id);
+      if (clone) clone.removeAttribute('id'); // avoid duplicate DOM ids while modal is open
+    });
+  }
+
+  const modal = document.getElementById('receiptModal');
+  if (modal) modal.style.display = 'flex';
+  else console.error("Critical: Could not find container element '#receiptModal' in your HTML page.");
+}
+
+function closeReceiptModal() {
+  const modal = document.getElementById('receiptModal');
+  if (modal) modal.style.display = 'none';
 }
 
 function printReceipt() {
+  const t = window._lastReceiptTask;
+  if (t) populateReceipt(t);
   window.print();
 }
 
-async function shareReceiptAsPDF(t) {
-  const receipt = document.getElementById('visibleThermalReceipt');
-  if (!receipt) {
-    showToast('No receipt view layout ready to capture.', 'var(--red)');
-    return;
-  }
-  const taskData = t || window._lastReceiptTask || {};
-  const filename = 'Receipt-' + (taskData.receipt_number || 'task');
-
-  try {
-    const { jsPDF } = window.jspdf;
-    const canvas = await html2canvas(receipt, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = 80; 
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    
-    const pdf = new jsPDF('p', 'mm', [imgWidth, imgHeight]);
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-
-    if (navigator.canShare && navigator.canShare({ files: [new File([pdf.output('blob')], filename + '.pdf', { type: 'application/pdf' })] })) {
-      const pdfBlob = pdf.output('blob');
-      const file = new File([pdfBlob], filename + '.pdf', { type: 'application/pdf' });
-      await navigator.share({ files: [file], title: filename, text: 'InclineWorks Receipt' });
-    } else {
-      pdf.save(filename + '.pdf');
-      showToast('PDF downloaded successfully!');
-    }
-  } catch (e) {
-    console.error(e);
-    showToast('Error generating PDF layout.', 'var(--red)');
-  }
-}
-
-async function whatsappReceipt(t) {
-  const receipt = document.getElementById('visibleThermalReceipt');
-  if (!receipt) {
-    showToast('No active receipt found to share.', 'var(--red)');
-    return;
-  }
-  const taskData = t || window._lastReceiptTask || {};
-  const filename = 'Receipt-' + (taskData.receipt_number || 'task');
-
-  try {
-    const canvas = await html2canvas(receipt, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false
-    });
-
-    canvas.toBlob(async blob => {
-      if (!blob) return;
-      const file = new File([blob], filename + '.png', { type: 'image/png' });
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: filename, text: 'InclineWorks Tailoring Receipt' });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename + '.png';
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('Receipt image saved! Share it via WhatsApp.');
-      }
-    }, 'image/png');
-  } catch (e) {
-    console.error(e);
-    showToast('Failed to parse shareable image capture.', 'var(--red)');
-  }
-}
-/* =========================================================
-   FIXED RECEIPT ACTIONS
-   ========================================================= */
-
-function printReceipt() {
-  // Instead of printing the hidden background element, 
-  // we temporarily move the styled preview content into focus.
-  const t = window._lastReceiptTask;
-  if (t) populateReceipt(t);
-  
-  // Make sure the background receipt element matches exactly what's shown
-  const thermal = document.getElementById('thermalReceipt');
-  if (thermal) {
-    thermal.style.display = 'block';
-    window.print();
-    thermal.style.display = 'none';
-  }
-}
-
-async function shareReceiptAsPDF(t) {
-  if (t) populateReceipt(t);
+async function _captureThermalReceipt() {
   const receipt = document.getElementById('thermalReceipt');
   const prevDisplay = receipt.style.display;
-  
-  // FORCED STYLING: Guarantees html2canvas sees black text on a white background
   receipt.style.display = 'block';
   receipt.style.position = 'absolute';
-  receipt.style.left = '0px';
-  receipt.style.top = '-9999px'; // Move out of active user view viewport safely
-  receipt.style.background = '#ffffff';
-  receipt.style.color = '#000000';
-  receipt.style.width = '300px';
-  receipt.style.padding = '16px';
+  receipt.style.left = '-9999px';
+  receipt.style.top = '0px';
+  await new Promise(r => setTimeout(r, 80));
+  try {
+    const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+    return canvas;
+  } finally {
+    receipt.style.display = prevDisplay || 'none';
+    receipt.style.position = '';
+    receipt.style.left = '';
+    receipt.style.top = '';
+  }
+}
 
-  // Ensure internal elements don't grab dark-theme inherits
-  const allTextElements = receipt.querySelectorAll('*');
-  allTextElements.forEach(el => {
-    el.style.color = '#000000';
-    el.style.backgroundColor = 'transparent';
-  });
-
-  const filename = 'Receipt-' + ((t && t.receipt_number) || 'task');
-
+async function shareReceiptAsPDF(t) {
+  if (t) populateReceipt(t);
+  const filename = 'Receipt-' + ((window._lastReceiptTask && window._lastReceiptTask.receipt_number) || 'task');
   try {
     const { jsPDF } = window.jspdf;
-    
-    // We add a short timeout to let the DOM adjust offscreen
-    await new Promise(r => setTimeout(r, 100));
-
-    const canvas = await html2canvas(receipt, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false
-    });
-
+    const canvas = await _captureThermalReceipt();
     const imgData = canvas.toDataURL('image/png');
-    
-    // Calculate sizing proportional to an 80mm thermal roll
-    const imgWidth = 80; 
+    const imgWidth = 80;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    
     const pdf = new jsPDF('p', 'mm', [imgWidth, imgHeight]);
     pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
-    if (navigator.canShare && navigator.canShare({ files: [new File([pdf.output('blob')], filename + '.pdf', { type: 'application/pdf' })] })) {
-      const pdfBlob = pdf.output('blob');
-      const file = new File([pdfBlob], filename + '.pdf', { type: 'application/pdf' });
-      await navigator.share({
-        files: [file],
-        title: filename,
-        text: 'InclineWorks Receipt'
-      });
+    const pdfBlob = pdf.output('blob');
+    const file = new File([pdfBlob], filename + '.pdf', { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename, text: 'InclineWorks Receipt' });
     } else {
       pdf.save(filename + '.pdf');
       showToast('PDF downloaded successfully!');
@@ -1257,86 +1105,30 @@ async function shareReceiptAsPDF(t) {
   } catch (e) {
     console.error('PDF generation error:', e);
     showToast('Failed to generate PDF. Use print instead.', 'var(--red)');
-  } finally {
-    // Reset styles cleanly back to hidden state
-    receipt.style.display = prevDisplay || 'none';
-    receipt.style.position = '';
-    receipt.style.left = '';
-    receipt.style.top = '';
-    receipt.style.width = '';
-    receipt.style.padding = '';
   }
 }
 
 async function whatsappReceipt(t) {
   if (t) populateReceipt(t);
-  const receipt = document.getElementById('thermalReceipt');
-  const prevDisplay = receipt.style.display;
-  
-  // FORCED STYLING: Same layout preparation block
-  receipt.style.display = 'block';
-  receipt.style.position = 'absolute';
-  receipt.style.left = '0px';
-  receipt.style.top = '-9999px';
-  receipt.style.background = '#ffffff';
-  receipt.style.color = '#000000';
-  receipt.style.width = '300px';
-  receipt.style.padding = '16px';
-
-  const allTextElements = receipt.querySelectorAll('*');
-  allTextElements.forEach(el => {
-    el.style.color = '#000000';
-    el.style.backgroundColor = 'transparent';
-  });
-
-  const filename = 'Receipt-' + ((t && t.receipt_number) || 'task');
-
+  const filename = 'Receipt-' + ((window._lastReceiptTask && window._lastReceiptTask.receipt_number) || 'task');
   try {
-    await new Promise(r => setTimeout(r, 100));
-
-    const canvas = await html2canvas(receipt, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false
-    });
-
+    const canvas = await _captureThermalReceipt();
     canvas.toBlob(async blob => {
-      if (!blob) {
-        showToast('Capture extraction failed', 'var(--red)');
-        return;
-      }
+      if (!blob) { showToast('Capture extraction failed', 'var(--red)'); return; }
       const file = new File([blob], filename + '.png', { type: 'image/png' });
-      
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: filename,
-          text: 'Your receipt from InclineWorks Tailoring Services'
-        });
+        await navigator.share({ files: [file], title: filename, text: 'Your receipt from InclineWorks Tailoring Services' });
       } else {
-        // Fallback for laptops/desktop browsers that lack native web sharing APIs
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = filename + '.png';
-        a.click();
+        a.href = url; a.download = filename + '.png'; a.click();
         URL.revokeObjectURL(url);
         showToast('Receipt saved to device! Share it manually via WhatsApp.');
       }
     }, 'image/png');
-
   } catch (e) {
     console.error('WhatsApp conversion error:', e);
     showToast('Could not capture receipt layout.', 'var(--red)');
-  } finally {
-    // Reset layout
-    receipt.style.display = prevDisplay || 'none';
-    receipt.style.position = '';
-    receipt.style.left = '';
-    receipt.style.top = '';
-    receipt.style.width = '';
-    receipt.style.padding = '';
   }
 }
 
